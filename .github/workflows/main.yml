@@ -10,7 +10,45 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          lfs: false  # ← Không pull LFS objects
+
+      - name: Setup Git
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+
+      - name: Remove LFS tracking for README.md
+        run: |
+          # Kiểm tra nếu .gitattributes track README.md hoặc *.md qua LFS
+          if [ -f .gitattributes ]; then
+            # Xóa các dòng LFS cho markdown files
+            sed -i '/\.md.*filter=lfs/d' .gitattributes
+            sed -i '/\*.*filter=lfs.*-text/d' .gitattributes
+          fi
+
+      - name: Ensure README.md is valid text
+        run: |
+          # Kiểm tra README.md có phải LFS pointer không
+          if [ -f README.md ] && grep -q "^version https://git-lfs" README.md; then
+            echo "README.md is an LFS pointer, recreating..."
+            cat > README.md << 'EOF'
+          ---
+          title: Coffee AI Forecast
+          emoji: ☕
+          colorFrom: brown
+          colorTo: green
+          sdk: gradio
+          sdk_version: "4.0.0"
+          app_file: app.py
+          pinned: false
+          ---
+
+          # Coffee AI Forecast
+          EOF
+          fi
+
       - name: Push to HF Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push https://kienxs:$HF_TOKEN@huggingface.co/spaces/kienxs/Coffee-AI-Forecast main --force
+        run: |
+          git push https://kienxs:$HF_TOKEN@huggingface.co/spaces/kienxs/Coffee-AI-Forecast main --force
