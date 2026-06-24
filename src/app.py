@@ -95,13 +95,17 @@ def current_data():
         recent_df = df.tail(7)
         latest_day = recent_df.iloc[-1]
 
+        latest_day = recent_df.iloc[-1]
+
+        month = pd.to_datetime(latest_day['ngay']).month
+
         return jsonify({
             "status": "success",
             "current_price": float(latest_day['gia']),
             "fuel_price": float(latest_day['ron95_vung1']),
             "rainfall": float(latest_day['Rainfall_30D_Sum']),
             "temperature": float(latest_day['temperature_2m_mean']),
-            "month": int(latest_day['thang']),
+            "month": int(month),
             "chart_labels": recent_df['ngay'].astype(str).tolist(),
             "chart_actual": recent_df['gia'].tolist()
         })
