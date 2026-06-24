@@ -84,6 +84,7 @@ def current_data():
 
         csv_path = os.path.join(
             BASE_DIR,
+            '..',
             'data',
             '3_processed',
             'processed_dak_lak_test.csv'
