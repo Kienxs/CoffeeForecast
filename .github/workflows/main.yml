@@ -10,42 +10,35 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          lfs: false  # ← Không pull LFS objects
+          lfs: true  # ← Pull LFS content thật về
 
       - name: Setup Git
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
 
-      - name: Remove LFS tracking for README.md
+      - name: Convert README.md to plain text and remove LFS
         run: |
-          # Kiểm tra nếu .gitattributes track README.md hoặc *.md qua LFS
+          # Cài git-lfs
+          sudo apt-get install -y git-lfs
+          git lfs install
+
+          # Untrack README.md khỏi LFS
+          git lfs untrack "*.md" 2>/dev/null || true
+          git lfs untrack "README.md" 2>/dev/null || true
+
+          # Xóa dòng LFS trong .gitattributes
           if [ -f .gitattributes ]; then
-            # Xóa các dòng LFS cho markdown files
-            sed -i '/\.md.*filter=lfs/d' .gitattributes
-            sed -i '/\*.*filter=lfs.*-text/d' .gitattributes
+            grep -v "filter=lfs" .gitattributes > .gitattributes.tmp || true
+            mv .gitattributes.tmp .gitattributes
           fi
 
-      - name: Ensure README.md is valid text
-        run: |
-          # Kiểm tra README.md có phải LFS pointer không
-          if [ -f README.md ] && grep -q "^version https://git-lfs" README.md; then
-            echo "README.md is an LFS pointer, recreating..."
-            cat > README.md << 'EOF'
-          ---
-          title: Coffee AI Forecast
-          emoji: ☕
-          colorFrom: brown
-          colorTo: green
-          sdk: gradio
-          sdk_version: "4.0.0"
-          app_file: app.py
-          pinned: false
-          ---
+          # Xóa cache LFS của README.md, re-add như file text thường
+          git rm --cached README.md 2>/dev/null || true
+          git add README.md
 
-          # Coffee AI Forecast
-          EOF
-          fi
+          # Commit nếu có thay đổi
+          git diff --cached --quiet || git commit -m "ci: convert README.md from LFS to plain text"
 
       - name: Push to HF Spaces
         env:
