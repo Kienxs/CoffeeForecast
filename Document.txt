@@ -1,0 +1,28 @@
+1. Các đặc trưng  ---------------------------------------------
+
+📅 Thời gian (Cyclic Encoding)
+thang_sin, thang_cos  -> Tháng trong năm, encode sin/cos (period=12)
+quy_sin, quy_cos  -> Quý trong năm, encode sin/cos (period=4)
+
+⏪ Lag (Quán tính thị trường)
+Lag_1_Price  -  Giá cà phê 1 ngày trước
+Lag_2_Price  -  Giá cà phê 2 ngày trước
+Lag_7_Price  -  Giá cà phê 7 ngày trước
+Lag_14_Price -  Giá cà phê 14 ngày trước
+Lag_30_Price - Giá cà phê 30 ngày trước
+
+📈 Xu hướng (Moving Average)
+MA_7_Price  - Trung bình 7 ngày qua 
+MA_30_Price - Trung bình 30 ngày qua 
+
+📊 Biến động (Volatility)
+Volatility_7D  -  Độ lệch chuẩn giá 7 ngày qua
+Volatility_30D -  Độ lệch chuẩn giá 30 ngày qua
+
+🌧️ Khí tượng
+Rainfall_30D_Sum  -  Tổng lượng mưa 30 ngày qua (chỉ có nếu có cột precipitation_sum)
+temperature_2m_mean - Nhiệt độ trung bình ngày (lấy thẳng từ raw data)
+
+⛽ Chi phí vận chuyển
+ron95_vung1 - Giá xăng RON95 ngày đó
+Fuel_Price_Change_7D  - Tốc độ thay đổi giá xăng 7 ngày
