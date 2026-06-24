@@ -75,17 +75,25 @@ def predict_simulation():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+import os
+
 @app.route('/api/current_data', methods=['GET'])
 def current_data():
-    """API tự động lấy giá cà phê và dữ liệu của ngày mới nhất từ file test"""
     try:
-        # Đọc file dữ liệu thực tế mới nhất (Test set)
-        df = pd.read_csv('processed_dak_lak_test.csv')
-        
-        # Lấy 7 ngày cuối cùng để hiển thị lên biểu đồ
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+        csv_path = os.path.join(
+            BASE_DIR,
+            'data',
+            '3_processed',
+            'processed_dak_lak_test.csv'
+        )
+
+        df = pd.read_csv(csv_path)
+
         recent_df = df.tail(7)
         latest_day = recent_df.iloc[-1]
-        
+
         return jsonify({
             "status": "success",
             "current_price": float(latest_day['gia']),
@@ -96,6 +104,7 @@ def current_data():
             "chart_labels": recent_df['ngay'].astype(str).tolist(),
             "chart_actual": recent_df['gia'].tolist()
         })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
