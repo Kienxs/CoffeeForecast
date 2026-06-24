@@ -1,7 +1,7 @@
 ---
 title: Coffee AI Forecast
 emoji: ☕
-colorFrom: brown
+colorFrom: yellow
 colorTo: green
 sdk: gradio
 sdk_version: "4.0.0"
