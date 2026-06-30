@@ -222,68 +222,60 @@
             }
         });
 
+        // Bỏ code mock data cũ, GỌI API THẬT
         async function fetchRealDataFromBackend() {
             try {
-                await new Promise(resolve => setTimeout(resolve, 500)); 
+                // 1. Gọi API lấy dữ liệu thực tế từ dòng cuối cùng của file CSV
+                const response = await fetch('/api/current_data');
+                const data = await response.json();
 
-                const data = {
-                    current_price: 105200,
-                    predicted_price: 106000,
-                    diff: 800,
-                    volatility: 1250.5,
-                    recommendation: "XU HƯỚNG TĂNG - NÊN GIỮ HÀNG",
-                    chart_labels: ['Ngày T-5', 'Ngày T-4', 'Ngày T-3', 'Ngày T-2', 'Ngày T-1', 'Hôm nay', 'Dự báo T+1'],
-                    chart_actual: [102000, 103500, 103000, 104500, 105000, 105200, null],
-                    chart_predict: [null, null, null, null, null, 105200, 106000]
-                };
-
-                document.getElementById('current-price').innerText = data.current_price.toLocaleString() + ' đ/kg';
-                document.getElementById('predicted-price').innerText = data.predicted_price.toLocaleString() + ' đ/kg';
-                document.getElementById('ticker-today').innerText = data.current_price.toLocaleString() + ' VNĐ';
-                document.getElementById('ticker-tomorrow').innerText = data.predicted_price.toLocaleString() + ' VNĐ';
-                document.getElementById('volatility-status').innerText = 'Dao động ~' + data.volatility.toLocaleString() + ' đ';
-                document.getElementById('ai-recommendation').innerText = data.recommendation;
-
-                const diffElem = document.getElementById('price-diff');
-                if(data.diff > 0) {
-                    diffElem.innerHTML = `<span style="color: #388E3C; font-weight: bold;">▲ Tăng ${Math.abs(data.diff).toLocaleString()} đ/kg</span>`;
-                } else {
-                    diffElem.innerHTML = `<span style="color: #D32F2F; font-weight: bold;">▼ Giảm ${Math.abs(data.diff).toLocaleString()} đ/kg</span>`;
+                if (data.error) {
+                    console.error("Lỗi từ backend:", data.error);
+                    document.getElementById('current-price').innerText = "Lỗi tải dữ liệu";
+                    return;
                 }
 
-                document.getElementById('current-price').innerText = data.current_price.toLocaleString() + ' đ/kg';
-                document.getElementById('ticker-today').innerText = data.current_price.toLocaleString() + ' VNĐ';
+                // 2. Gán dữ liệu thực tế vào UI
+                const currentPrice = data.current_price;
+                const fuelPrice = data.fuel_price;
+                const rainfall = data.rainfall;
+                const temp = data.temperature;
+                const month = data.month;
 
-                document.getElementById('slider-lag1').value = data.current_price;
-                document.getElementById('lag1-val').innerText = data.current_price.toLocaleString() + ' đ/kg';
+                document.getElementById('current-price').innerText = currentPrice.toLocaleString() + ' đ/kg';
+                document.getElementById('ticker-today').innerText = currentPrice.toLocaleString() + ' VNĐ';
 
-                document.getElementById('slider-fuel').value = data.fuel_price;
-                document.getElementById('fuel-val').innerText = data.fuel_price.toLocaleString() + ' đ/lít';
+                document.getElementById('slider-lag1').value = currentPrice;
+                document.getElementById('lag1-val').innerText = currentPrice.toLocaleString() + ' đ/kg';
 
-                document.getElementById('slider-rain').value = data.rainfall;
-                document.getElementById('rain-val').innerText = data.rainfall.toFixed(1) + ' mm';
+                document.getElementById('slider-fuel').value = fuelPrice;
+                document.getElementById('fuel-val').innerText = fuelPrice.toLocaleString() + ' đ/lít';
 
-                document.getElementById('slider-temp').value = data.temperature;
-                document.getElementById('temp-val').innerText = data.temperature.toFixed(1) + ' °C';
+                document.getElementById('slider-rain').value = rainfall;
+                document.getElementById('rain-val').innerText = rainfall.toFixed(1) + ' mm';
 
-                document.getElementById('slider-month').value = data.month;
-                document.getElementById('month-val').innerText = 'Tháng ' + data.month;
+                document.getElementById('slider-temp').value = temp;
+                document.getElementById('temp-val').innerText = temp.toFixed(1) + ' °C';
+
+                document.getElementById('slider-month').value = month;
+                document.getElementById('month-val').innerText = 'Tháng ' + month;
 
                 let vol = calculateVolatility(data.chart_actual);
                 document.getElementById('volatility-status').innerText = 'Dao động ~' + Math.round(vol).toLocaleString() + ' đ';
 
+                // Lưu dữ liệu biểu đồ toàn cục để dùng cho các mô phỏng sau
                 globalChartActual = data.chart_actual;
                 globalLabels = data.chart_labels;
 
+                // 3. Tự động chạy mô phỏng lần đầu tiên với dữ liệu thực tế
                 let horizon = parseInt(document.getElementById('select-horizon').value);
-                runAISimulation(data.current_price, data.fuel_price, data.rainfall, data.temperature, data.month, horizon);
+                runAISimulation(currentPrice, fuelPrice, rainfall, temp, month, horizon);
 
             } catch (error) {
                 console.error("Lỗi kết nối API Data:", error);
             }
         }
 
-        // BỔ SUNG THÊM THAM SỐ HORIZON
         async function runAISimulation(lagPrice, fuel, rain, temp, month, horizon) {
             const predictElem = document.getElementById('predicted-price');
             const diffElem = document.getElementById('price-diff');
@@ -300,7 +292,7 @@
                 rainfall: rain,
                 temperature: temp,
                 month: month,
-                horizon: horizon // GỬI HORIZON SANG PYTHON
+                horizon: horizon 
             };
 
             try {
@@ -339,29 +331,34 @@
                     recommendElem.style.color = "#D32F2F";
                 }
 
-                // 2. SỬA LỖI ĐIỂM NỐI BIỂU ĐỒ 
+                // --- SỬA LỖI BIỂU ĐỒ TẠI ĐÂY ---
                 let customLabels = [...globalLabels];
-                for(let i=0; i < horizon - 1; i++){ customLabels.push(""); }
-                customLabels.push(`T+${horizon}`);
+                // Thêm nhãn cho các ngày tương lai
+                for(let i=1; i < horizon; i++){ customLabels.push(`+${i} ngày`); }
+                customLabels.push(`Tương lai (+${horizon})`);
 
+                // Dữ liệu đường thực tế (giữ nguyên độ dài, ChartJS tự hiểu đoạn sau trống)
                 let actualPlot = [...globalChartActual];
-                for(let i=0; i < horizon; i++){ actualPlot.push(null); }
                 
-                let predictPlot = new Array(globalChartActual.length + horizon).fill(null);
-                predictPlot[globalChartActual.length - 1] = lagPrice; // Điểm gốc hiện tại
-                predictPlot[globalChartActual.length + horizon - 1] = predictedPrice; // Điểm tương lai
+                // Dữ liệu đường dự báo (Tạo mảng full length = quá khứ + tương lai)
+                let totalLength = globalChartActual.length + horizon;
+                let predictPlot = new Array(totalLength).fill(null);
+                
+                // Móc nối điểm cuối cùng của thực tế với điểm dự báo
+                let lastActualIndex = globalChartActual.length - 1;
+                predictPlot[lastActualIndex] = lagPrice;          // Điểm neo hiện tại
+                predictPlot[lastActualIndex + horizon] = predictedPrice; // Điểm phóng tới
 
                 coffeeChart.data.labels = customLabels;
-
                 coffeeChart.data.datasets[0].data = actualPlot;
                 coffeeChart.data.datasets[1].data = predictPlot;
                 coffeeChart.update();
+                // --------------------------------
 
             } catch(e) { 
                 console.error("Lỗi gọi Server:", e);
                 predictElem.innerText = "Lỗi kết nối API!";
             }
-
         }
 
         document.addEventListener('DOMContentLoaded', fetchRealDataFromBackend);
