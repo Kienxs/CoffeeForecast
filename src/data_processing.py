@@ -3,7 +3,8 @@ import warnings
 import pandas as pd
 import numpy as np
 
-# ── CẤU HÌNH ĐƯỜNG DẪN ──────────────────────────────────────────────────────
+warnings.filterwarnings('ignore')
+
 TRAIN_FILE = 'data/2_interim/replication_dak_lak_train.csv'
 VAL_FILE   = 'data/2_interim/replication_dak_lak_val.csv'
 TEST_FILE  = 'data/2_interim/replication_dak_lak_test.csv'
@@ -19,7 +20,7 @@ def cyclic_encode(series: pd.Series, period: int, name: str) -> pd.DataFrame:
     }, index=series.index)
 
 def main():
-    print("⏳ Đang tiến hành gộp và xử lý dữ liệu...")
+    print("⏳ Đang tiến hành gộp và trích xuất đặc trưng (Feature Engineering)...")
     try:
         df_train = pd.read_csv(TRAIN_FILE)
         df_val   = pd.read_csv(VAL_FILE)
@@ -44,9 +45,7 @@ def main():
     df_merged = df_coffee.join(df_fuel['ron95_vung1'], how='left')
     df_merged['ron95_vung1'] = df_merged['ron95_vung1'].ffill()
 
-    # --- Feature Engineering ---
-    df_merged['Target_Diff'] = df_merged[TARGET_COL].diff()
-
+    # --- Feature Engineering (Chỉ tạo biến dự báo, không tạo Target ở đây) ---
     thang_encoded = cyclic_encode(df_merged.index.to_series().dt.month, 12, 'thang')
     quy_encoded   = cyclic_encode(df_merged.index.to_series().dt.quarter, 4, 'quy')
     df_merged = df_merged.join(thang_encoded).join(quy_encoded)
@@ -69,8 +68,9 @@ def main():
     df_merged['Fuel_Price_Change_7D'] = df_merged['ron95_vung1'].shift(1).pct_change(periods=7)
 
     # --- Làm sạch và Lưu ---
+    # Bỏ Target_Diff ra khỏi danh sách dropna, giữ lại 'gia' để làm mốc tính toán sau này
     required_cols_for_dropna = [
-        'Target_Diff', 'Lag_30_Price', 'MA_30_Price', 'Volatility_30D', 'Fuel_Price_Change_7D', 'ron95_vung1'
+        'gia', 'Lag_30_Price', 'MA_30_Price', 'Volatility_30D', 'Fuel_Price_Change_7D', 'ron95_vung1'
     ]
     df_merged.dropna(subset=required_cols_for_dropna, inplace=True)
 
