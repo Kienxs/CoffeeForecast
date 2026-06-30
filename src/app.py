@@ -10,23 +10,24 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder='../web', static_url_path='/')
 CORS(app)
 
-# --- LOAD 4 MÔ HÌNH VÀO DICTIONARY KHI KHỞI ĐỘNG ---
+# --- LOAD 4 MÔ HÌNH LIGHTGBM VÀO DICTIONARY KHI KHỞI ĐỘNG ---
 MODELS = {}
 HORIZONS = [1, 3, 7, 30]
 
 for h in HORIZONS:
-    model_path = f'models/model_{h}d.pkl'
+    # 🔴 Đã sửa tên file cho khớp với file huấn luyện mới
+    model_path = f'models/lgbm_model_{h}d.pkl'
     try:
         MODELS[h] = joblib.load(model_path)
-        print(f"✅ Đã load mô hình dự báo {h} ngày.")
+        print(f"✅ Đã load mô hình LightGBM dự báo {h} ngày.")
     except FileNotFoundError:
         print(f"⚠️ Cảnh báo: Chưa tìm thấy {model_path}.")
         MODELS[h] = None
 
-
+# 🔴 Đã loại bỏ Lag_2_Price và Lag_14_Price cho khớp với Training
 FEATURE_COLUMNS = [
     'thang_sin', 'thang_cos', 'quy_sin', 'quy_cos',
-    'Lag_1_Price', 'Lag_2_Price', 'Lag_7_Price', 'Lag_14_Price', 'Lag_30_Price',
+    'Lag_1_Price', 'Lag_7_Price', 'Lag_30_Price',
     'MA_7_Price', 'MA_30_Price',
     'Volatility_7D', 'Volatility_30D',
     'Rainfall_30D_Sum',
@@ -41,7 +42,7 @@ def index():
 @app.route('/api/predict_simulation', methods=['POST'])
 def predict_simulation():
     data = request.json
-    horizon = int(data.get('horizon', 1)) # Nhận yêu cầu dự báo mấy ngày từ Web
+    horizon = int(data.get('horizon', 1))
 
     if horizon not in MODELS or MODELS[horizon] is None:
         return jsonify({"error": f"Mô hình {horizon} ngày chưa sẵn sàng"}), 500
@@ -59,22 +60,26 @@ def predict_simulation():
         quy_sin = math.sin(2 * math.pi * quarter / 4)
         quy_cos = math.cos(2 * math.pi * quarter / 4)
 
+        # 🔴 Tạo input_dict phải y hệt số lượng và thứ tự cột lúc Train
         input_dict = {
             'thang_sin': thang_sin, 'thang_cos': thang_cos,
             'quy_sin': quy_sin, 'quy_cos': quy_cos,
-            'Lag_1_Price': lag_1, 'Lag_2_Price': lag_1 - 500, 'Lag_7_Price': lag_1 - 1500, 
-            'Lag_14_Price': lag_1 - 2500, 'Lag_30_Price': lag_1 - 4000,
-            'MA_7_Price': lag_1 - 800, 'MA_30_Price': lag_1 - 2000,
-            'Volatility_7D': 1200.0, 'Volatility_30D': 1800.0,
+            'Lag_1_Price': lag_1, 
+            'Lag_7_Price': lag_1 - 1500,  # Giả định giá trị lag tạm thời nếu ko có real data
+            'Lag_30_Price': lag_1 - 4000,
+            'MA_7_Price': lag_1 - 800, 
+            'MA_30_Price': lag_1 - 2000,
+            'Volatility_7D': 1200.0, 
+            'Volatility_30D': 1800.0,
             'Rainfall_30D_Sum': rain,
             'ron95_vung1': fuel,
             'Fuel_Price_Change_7D': 0.02,
             'temperature_2m_mean': temp
         }
 
+        # Lưu ý: LightGBM yêu cầu dataframe có cột giống hệt lúc fit
         df_input = pd.DataFrame([input_dict], columns=FEATURE_COLUMNS)
         
-        # --- CHỌN MÔ HÌNH THEO ĐÚNG HORIZON ĐỂ DỰ BÁO ---
         selected_model = MODELS[horizon]
         predicted_diff = selected_model.predict(df_input)[0]
         final_price = lag_1 + predicted_diff
@@ -89,6 +94,7 @@ def predict_simulation():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
+# Endpoint current_data giữ nguyên như của bạn...
 @app.route('/api/current_data', methods=['GET'])
 def current_data():
     try:
