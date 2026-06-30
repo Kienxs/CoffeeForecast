@@ -10,38 +10,39 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          lfs: true  # ← Pull LFS content thật về
+          lfs: true  # Kéo toàn bộ file vật lý LFS từ GitHub về Runner
 
       - name: Setup Git
         run: |
           git config user.email "action@github.com"
           git config user.name "GitHub Action"
 
-      - name: Convert README.md to plain text and remove LFS
+      - name: Fix LFS Tracking (Giữ .pkl, gỡ README)
         run: |
-          # Cài git-lfs
-          sudo apt-get install -y git-lfs
           git lfs install
 
-          # Untrack README.md khỏi LFS
+          # 1. Hủy track LFS cho README.md an toàn
           git lfs untrack "*.md" 2>/dev/null || true
           git lfs untrack "README.md" 2>/dev/null || true
-
-          # Xóa dòng LFS trong .gitattributes
-          if [ -f .gitattributes ]; then
-            grep -v "filter=lfs" .gitattributes > .gitattributes.tmp || true
-            mv .gitattributes.tmp .gitattributes
-          fi
-
-          # Xóa cache LFS của README.md, re-add như file text thường
           git rm --cached README.md 2>/dev/null || true
           git add README.md
 
-          # Commit nếu có thay đổi
-          git diff --cached --quiet || git commit -m "ci: convert README.md from LFS to plain text"
+          # 2. BẮT BUỘC: Đảm bảo các file mô hình vẫn dùng LFS
+          git lfs track "*.pkl"
+          
+          # 3. Cập nhật lại file .gitattributes
+          git add .gitattributes
+          git diff --cached --quiet || git commit -m "ci: fix LFS tracking rules for HF Spaces"
 
       - name: Push to HF Spaces
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          git push https://kienxs:$HF_TOKEN@huggingface.co/spaces/kienxs/Coffee-AI-Forecast main --force
+          # 1. Khai báo máy chủ Hugging Face
+          git remote add hf https://kienxs:$HF_TOKEN@huggingface.co/spaces/kienxs/Coffee-AI-Forecast
+          
+          # 2. Lệnh cực kỳ quan trọng: Ép đẩy các file LFS vật lý (.pkl) lên HF trước
+          git lfs push hf main
+          
+          # 3. Đẩy source code (và các con trỏ LFS) lên HF
+          git push hf main --force
