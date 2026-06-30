@@ -89,8 +89,7 @@ def predict_simulation():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-<<<<<<< Updated upstream
-=======
+
 @app.route('/api/current_data', methods=['GET'])
 def current_data():
     try:
@@ -116,6 +115,5 @@ def current_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
->>>>>>> Stashed changes
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860, debug=False)
