@@ -10,39 +10,33 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
-          lfs: true  # Kéo toàn bộ file vật lý LFS từ GitHub về Runner
+          lfs: true
 
-      - name: Setup Git
-        run: |
-          git config user.email "action@github.com"
-          git config user.name "GitHub Action"
-
-      - name: Fix LFS Tracking (Giữ .pkl, gỡ README)
-        run: |
-          git lfs install
-
-          # 1. Hủy track LFS cho README.md an toàn
-          git lfs untrack "*.md" 2>/dev/null || true
-          git lfs untrack "README.md" 2>/dev/null || true
-          git rm --cached README.md 2>/dev/null || true
-          git add README.md
-
-          # 2. BẮT BUỘC: Đảm bảo các file mô hình vẫn dùng LFS
-          git lfs track "*.pkl"
-          
-          # 3. Cập nhật lại file .gitattributes
-          git add .gitattributes
-          git diff --cached --quiet || git commit -m "ci: fix LFS tracking rules for HF Spaces"
-
-      - name: Push to HF Spaces
+      - name: Deploy Clean State to HF
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          # 1. Khai báo máy chủ Hugging Face
+          # 1. Xóa toàn bộ lịch sử Git cũ (Chỉ xóa trên máy ảo runner, GitHub của bạn vẫn giữ nguyên an toàn)
+          rm -rf .git
+          
+          # 2. Khởi tạo lại một repo mới tinh với nhánh main
+          git init -b main
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          
+          # 3. Cài đặt LFS chuẩn từ đầu (chỉ track model, không track file text)
+          git lfs install
+          git lfs track "*.pkl"
+          
+          # 4. Gom toàn bộ code hiện tại thành 1 commit duy nhất sạch sẽ
+          git add .
+          git commit -m "🚀 Deploy clean state to Hugging Face"
+          
+          # 5. Khai báo máy chủ Hugging Face
           git remote add hf https://kienxs:$HF_TOKEN@huggingface.co/spaces/kienxs/Coffee-AI-Forecast
           
-          # 2. Lệnh cực kỳ quan trọng: Ép đẩy các file LFS vật lý (.pkl) lên HF trước
+          # 6. Đẩy file LFS vật lý lên trước
           git lfs push hf main
           
-          # 3. Đẩy source code (và các con trỏ LFS) lên HF
+          # 7. Ép đẩy 1 commit sạch sẽ này lên Hugging Face
           git push hf main --force
