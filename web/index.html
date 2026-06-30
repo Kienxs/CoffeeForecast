@@ -317,14 +317,14 @@
                     return;
                 }
 
-                let simulatedPrice = aiResult.predicted_price;
+                let predictedPrice = aiResult.predicted_price; 
                 let lag1_price = aiResult.base_price;
-
 
                 predictElem.innerText = Math.round(predictedPrice).toLocaleString() + ' đ/kg';
                 predictElem.style.color = "#E53935"; 
+                document.getElementById('ticker-tomorrow').innerText = Math.round(predictedPrice).toLocaleString() + ' VNĐ';
 
-                const diff = simulatedPrice - lag1_price;
+                const diff = predictedPrice - lag1_price;
                 if(diff > 0) {
                     diffElem.innerHTML = `<span style="color: #388E3C; font-weight: bold;">▲ Tăng ${Math.round(Math.abs(diff)).toLocaleString()} đ/kg (Sau ${horizon} ngày)</span>`;
                     recommendElem.innerText = "AI Đề xuất: GIỮ HÀNG (Kịch bản giá lên)";
@@ -339,7 +339,7 @@
                     recommendElem.style.color = "#D32F2F";
                 }
 
-                // CẬP NHẬT TRỤC X CỦA BIỂU ĐỒ THEO HORIZON
+                // 2. SỬA LỖI ĐIỂM NỐI BIỂU ĐỒ 
                 let customLabels = [...globalLabels];
                 for(let i=0; i < horizon - 1; i++){ customLabels.push(""); }
                 customLabels.push(`T+${horizon}`);
@@ -348,10 +348,11 @@
                 for(let i=0; i < horizon; i++){ actualPlot.push(null); }
                 
                 let predictPlot = new Array(globalChartActual.length + horizon).fill(null);
-                predictPlot[globalChartActual.length - 1] = lagPrice;
-                predictPlot[predictPlot.length - 1] = predictedPrice;
+                predictPlot[globalChartActual.length - 1] = lagPrice; // Điểm gốc hiện tại
+                predictPlot[globalChartActual.length + horizon - 1] = predictedPrice; // Điểm tương lai
 
                 coffeeChart.data.labels = customLabels;
+
                 coffeeChart.data.datasets[0].data = actualPlot;
                 coffeeChart.data.datasets[1].data = predictPlot;
                 coffeeChart.update();
