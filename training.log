@@ -60,3 +60,81 @@ ron95_vung1                  -163.339653
 lag_2                       -1788.659112
 min_7d                      -1861.402115
 2026-07-01 13:08:24,426 - __main__ - INFO - Đã lưu mô hình chuẩn hóa và dự đoán tại: models/coffee_price_lr_model.pkl
+2026-07-01 21:53:16,721 - __main__ - INFO - Bắt đầu quy trình huấn luyện mô hình...
+2026-07-01 21:53:16,750 - __main__ - INFO - Đã tải dữ liệu từ data/coffee_price_train_features.csv | Kích thước sẵn sàng train: (3939, 25)
+2026-07-01 21:53:16,761 - __main__ - INFO - Đã tải dữ liệu từ data/coffee_price_val_features.csv | Kích thước sẵn sàng train: (1121, 25)
+2026-07-01 21:53:16,764 - __main__ - INFO - Đã tải dữ liệu từ data/coffee_price_test_features.csv | Kích thước sẵn sàng train: (280, 25)
+2026-07-01 21:53:16,773 - __main__ - INFO - Số lượng features đầu vào: 22
+2026-07-01 21:53:16,774 - __main__ - INFO - Danh sách features: ['temperature_2m_mean', 'temperature_2m_min', 'temperature_2m_max', 'precipitation_sum', 'rain_sum', 'lat', 'lon', 'ron95_vung1', 'is_update_day', 'thang', 'nam', 'thi_truong_Gia Lai', 'thi_truong_Kon Tum', 'thi_truong_Lâm Đồng', 'thi_truong_Đắk Lắk', 'thi_truong_Đắk Nông', 'lag_1', 'lag_2', 'rolling_mean_3', 'min_7d', 'max_7d', 'usd_vnd']
+2026-07-01 21:53:16,775 - __main__ - INFO - Đang huấn luyện Linear Regression pipeline...
+2026-07-01 21:53:16,791 - __main__ - INFO - Huấn luyện hoàn tất!
+2026-07-01 21:53:16,797 - __main__ - INFO - --- ĐÁNH GIÁ TRÊN TẬP TRAIN ---
+2026-07-01 21:53:16,798 - __main__ - INFO - MAE  : 786.56
+2026-07-01 21:53:16,798 - __main__ - INFO - RMSE : 1910.32
+2026-07-01 21:53:16,798 - __main__ - INFO - R2   : 0.9966
+
+2026-07-01 21:53:16,805 - __main__ - INFO - --- ĐÁNH GIÁ TRÊN TẬP VALIDATION ---
+2026-07-01 21:53:16,805 - __main__ - INFO - MAE  : 2102.69
+2026-07-01 21:53:16,805 - __main__ - INFO - RMSE : 3460.93
+2026-07-01 21:53:16,805 - __main__ - INFO - R2   : 0.9328
+
+2026-07-01 21:53:16,808 - __main__ - INFO - --- ĐÁNH GIÁ TRÊN TẬP TEST ---
+2026-07-01 21:53:16,809 - __main__ - INFO - MAE  : 1453.95
+2026-07-01 21:53:16,809 - __main__ - INFO - RMSE : 1898.54
+2026-07-01 21:53:16,810 - __main__ - INFO - R2   : 0.8648
+
+2026-07-01 21:53:16,814 - __main__ - INFO - Top 5 đặc trưng ảnh hưởng tích cực (Làm tăng giá):
+                    Hệ số (Coefficient)
+lag_1                      33968.440214
+max_7d                      1643.167174
+nam                          518.813918
+temperature_2m_min           246.724196
+usd_vnd                      202.673744
+2026-07-01 21:53:16,814 - __main__ - INFO - Top 5 đặc trưng ảnh hưởng tiêu cực (Làm giảm giá):
+                     Hệ số (Coefficient)
+thang                         -59.348873
+temperature_2m_mean          -119.136237
+ron95_vung1                  -140.956265
+lag_2                       -1800.127118
+min_7d                      -1861.760634
+2026-07-01 21:53:16,814 - __main__ - INFO - 👉 Trọng số của Tỷ giá USD/VND: 202.67
+2026-07-01 21:53:16,821 - __main__ - INFO - Đã lưu mô hình chuẩn hóa và dự đoán tại: models/coffee_price_lr_model.pkl
+2026-07-01 21:53:32,529 - __main__ - INFO - Bắt đầu quy trình huấn luyện mô hình...
+2026-07-01 21:53:32,542 - __main__ - INFO - Đã tải dữ liệu từ data/coffee_price_train_features.csv | Kích thước sẵn sàng train: (3939, 25)
+2026-07-01 21:53:32,548 - __main__ - INFO - Đã tải dữ liệu từ data/coffee_price_val_features.csv | Kích thước sẵn sàng train: (1121, 25)
+2026-07-01 21:53:32,557 - __main__ - INFO - Đã tải dữ liệu từ data/coffee_price_test_features.csv | Kích thước sẵn sàng train: (280, 25)
+2026-07-01 21:53:32,561 - __main__ - INFO - Số lượng features đầu vào: 22
+2026-07-01 21:53:32,562 - __main__ - INFO - Danh sách features: ['temperature_2m_mean', 'temperature_2m_min', 'temperature_2m_max', 'precipitation_sum', 'rain_sum', 'lat', 'lon', 'ron95_vung1', 'is_update_day', 'thang', 'nam', 'thi_truong_Gia Lai', 'thi_truong_Kon Tum', 'thi_truong_Lâm Đồng', 'thi_truong_Đắk Lắk', 'thi_truong_Đắk Nông', 'lag_1', 'lag_2', 'rolling_mean_3', 'min_7d', 'max_7d', 'usd_vnd']
+2026-07-01 21:53:32,562 - __main__ - INFO - Đang huấn luyện Linear Regression pipeline...
+2026-07-01 21:53:32,576 - __main__ - INFO - Huấn luyện hoàn tất!
+2026-07-01 21:53:32,580 - __main__ - INFO - --- ĐÁNH GIÁ TRÊN TẬP TRAIN ---
+2026-07-01 21:53:32,581 - __main__ - INFO - MAE  : 786.56
+2026-07-01 21:53:32,581 - __main__ - INFO - RMSE : 1910.32
+2026-07-01 21:53:32,582 - __main__ - INFO - R2   : 0.9966
+
+2026-07-01 21:53:32,585 - __main__ - INFO - --- ĐÁNH GIÁ TRÊN TẬP VALIDATION ---
+2026-07-01 21:53:32,586 - __main__ - INFO - MAE  : 2102.69
+2026-07-01 21:53:32,586 - __main__ - INFO - RMSE : 3460.93
+2026-07-01 21:53:32,587 - __main__ - INFO - R2   : 0.9328
+
+2026-07-01 21:53:32,589 - __main__ - INFO - --- ĐÁNH GIÁ TRÊN TẬP TEST ---
+2026-07-01 21:53:32,590 - __main__ - INFO - MAE  : 1453.95
+2026-07-01 21:53:32,591 - __main__ - INFO - RMSE : 1898.54
+2026-07-01 21:53:32,591 - __main__ - INFO - R2   : 0.8648
+
+2026-07-01 21:53:32,596 - __main__ - INFO - Top 5 đặc trưng ảnh hưởng tích cực (Làm tăng giá):
+                    Hệ số (Coefficient)
+lag_1                      33968.440214
+max_7d                      1643.167174
+nam                          518.813918
+temperature_2m_min           246.724196
+usd_vnd                      202.673744
+2026-07-01 21:53:32,599 - __main__ - INFO - Top 5 đặc trưng ảnh hưởng tiêu cực (Làm giảm giá):
+                     Hệ số (Coefficient)
+thang                         -59.348873
+temperature_2m_mean          -119.136237
+ron95_vung1                  -140.956265
+lag_2                       -1800.127118
+min_7d                      -1861.760634
+2026-07-01 21:53:32,601 - __main__ - INFO - 👉 Trọng số của Tỷ giá USD/VND: 202.67
+2026-07-01 21:53:32,604 - __main__ - INFO - Đã lưu mô hình chuẩn hóa và dự đoán tại: models/coffee_price_lr_model.pkl

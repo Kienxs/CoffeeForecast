@@ -24,7 +24,7 @@ FEATURE_COLUMNS = [
     'is_update_day', 'thang', 'nam', 'thi_truong_Gia Lai',
     'thi_truong_Kon Tum', 'thi_truong_Lâm Đồng', 'thi_truong_Đắk Lắk',
     'thi_truong_Đắk Nông', 'lag_1', 'lag_2', 'rolling_mean_3',
-    'min_7d', 'max_7d'
+    'min_7d', 'max_7d', 'usd_vnd'
 ]
 
 @app.route('/')
@@ -45,7 +45,10 @@ def predict_simulation():
         rain  = float(data.get('rainfall', 10))
         temp  = float(data.get('temperature', 28))
         month = int(data.get('month', 6))
-        year  = int(data.get('year', 2025))
+        year  = int(data.get('year', 2026))
+        
+        # 🔴 Thêm tham số tỷ giá USD (Mặc định lấy 25400 nếu UI chưa gửi lên)
+        usd   = float(data.get('usd_vnd', 25400))
         
         # Xử lý chọn tỉnh/thị trường (Mặc định là Đắk Lắk)
         region = data.get('region', 'Đắk Lắk')
@@ -57,17 +60,17 @@ def predict_simulation():
         else:
             thi_truong['Đắk Lắk'] = 1 # Fallback an toàn
 
-        # 3. TẠO INPUT DICT (Gồm tham số chính + nội suy tham số phụ)
+        # 3. TẠO INPUT DICT (Gồm tham số chính + nội suy tham số phụ + usd_vnd)
         input_dict = {
             'temperature_2m_mean': temp,
-            'temperature_2m_min': temp - 3.5, # Giả định nhiệt độ min thấp hơn trung bình 3.5 độ
-            'temperature_2m_max': temp + 4.0, # Giả định nhiệt độ max cao hơn trung bình 4 độ
+            'temperature_2m_min': temp - 3.5, 
+            'temperature_2m_max': temp + 4.0, 
             'precipitation_sum': rain,
             'rain_sum': rain,
-            'lat': 12.66, # Tọa độ xấp xỉ của Tây Nguyên
+            'lat': 12.66, 
             'lon': 108.03,
             'ron95_vung1': fuel,
-            'is_update_day': 1, # Thường dự đoán cho ngày có cập nhật giá
+            'is_update_day': 1, 
             'thang': month,
             'nam': year,
             'thi_truong_Gia Lai': thi_truong['Gia Lai'],
@@ -76,18 +79,20 @@ def predict_simulation():
             'thi_truong_Đắk Lắk': thi_truong['Đắk Lắk'],
             'thi_truong_Đắk Nông': thi_truong['Đắk Nông'],
             
-            # Khối dữ liệu chuỗi thời gian (Nội suy dựa trên lag_1)
+            # Khối dữ liệu chuỗi thời gian
             'lag_1': lag_1,
-            'lag_2': lag_1 - 300,            # Giả định giá hôm kia thấp hơn hôm qua một chút
-            'rolling_mean_3': lag_1 - 100,   # Trung bình 3 ngày sát với giá lag_1
-            'min_7d': lag_1 - 1500,          # Đáy 7 ngày
-            'max_7d': lag_1 + 500            # Đỉnh 7 ngày
+            'lag_2': lag_1 - 300,            
+            'rolling_mean_3': lag_1 - 100,   
+            'min_7d': lag_1 - 1500,          
+            'max_7d': lag_1 + 500,
+            
+            'usd_vnd': usd
         }
 
         # Chuyển đổi thành DataFrame với đúng thứ tự cột
         df_input = pd.DataFrame([input_dict], columns=FEATURE_COLUMNS)
         
-        # Dự đoán: Khác với LightGBM (dự đoán diff), Linear Regression của chúng ta dự đoán thẳng GIÁ TRỊ THỰC
+        # Dự đoán GIÁ TRỊ THỰC
         predicted_price = model_pipeline.predict(df_input)[0]
         predicted_diff = predicted_price - lag_1
 
@@ -110,7 +115,7 @@ def current_data():
         csv_path = os.path.join(BASE_DIR, '..', 'data', 'coffee_price_test_features.csv')
         df = pd.read_csv(csv_path)
 
-        # Lọc lấy riêng dữ liệu của 1 tỉnh (ví dụ Đắk Lắk) để vẽ biểu đồ không bị nhiễu do trùng ngày
+        # Lọc lấy riêng dữ liệu của 1 tỉnh để vẽ biểu đồ
         df_daklak = df[df['thi_truong_Đắk Lắk'] == 1]
         
         recent_df = df_daklak.tail(7)
@@ -124,6 +129,8 @@ def current_data():
             "temperature": float(latest_day['temperature_2m_mean']),
             "month": int(latest_day['thang']),
             "year": int(latest_day['nam']),
+            # 🔴 Đọc tỷ giá USD_VND thực tế từ file CSV
+            "usd_vnd": float(latest_day.get('usd_vnd', 25400)), 
             "chart_labels": recent_df['ngay'].astype(str).tolist() if 'ngay' in recent_df else [],
             "chart_actual": recent_df['gia'].tolist()
         })

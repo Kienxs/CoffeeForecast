@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CoffeeForecast - AI Dự Báo Giá Cà Phê</title>
     <link href="index.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -29,19 +29,24 @@
     </header>
 
     <main class="container dashboard">
-
-        <h1 class="dashboard-title">Dự Báo Giá Cà Phê AI (Mô hình Linear Regression)</h1>
+        <div class="header-actions">
+            <h1 class="dashboard-title" style="margin-bottom: 0;">Dự Báo Giá Cà Phê Việt Nam</h1>
+            <button id="btn-refresh" class="btn-refresh">
+                <span id="refresh-icon">🔄</span> Làm mới Dữ liệu
+            </button>
+        </div>
+>>>>>>> 4bfeb43 (feature: Button refesh + add usd_vn row data)
 
         <section class="market-board">
             <div class="mb-header">
-                <span class="lbl-avg">Trung bình</span>
+                <span class="lbl-avg">Trung bình Tây Nguyên</span>
                 <div class="mb-price-wrapper">
                     <div class="mb-price" id="board-avg-price">-- <span class="mb-unit">đ/kg</span></div>
                     <div class="mb-badge" id="board-avg-change">--</div>
                 </div>
             </div>
 
-            <h3 class="mb-table-title">Giá cà phê trong nước</h3>
+            <h3 class="mb-table-title">Giá thu mua trong nước</h3>
             <table class="mb-table">
                 <thead>
                     <tr>
@@ -58,19 +63,32 @@
             </table>
         </section>
 
-        <section class="cards-grid" style="grid-template-columns: 1fr 1fr;">
+        <section class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
             <div class="card">
                 <h3 id="prediction-title">Dự Báo Của AI (Ngày Mai)</h3>
                 <div class="price" id="predicted-price" style="color: var(--red-down);">Đang tải...</div>
-                <div id="price-diff">Đang tính toán chênh lệch...</div>
-                <div class="forecast-tag tag-buy" id="ai-recommendation" style="margin-top: 10px;">AI Đề xuất: ĐANG PHÂN
-                    TÍCH...</div>
+                <div id="price-diff">Đang tính toán...</div>
+                <div class="forecast-tag tag-buy" id="ai-recommendation" style="margin-top: 10px;">Đang phân tích...</div>
+            </div>
+
+            <div class="card">
+                <h3>Chỉ Số Vĩ Mô (Hiện Tại)</h3>
+                <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e5e7eb; padding-bottom: 10px;">
+                        <span style="color: var(--text-light); font-weight: 500;">💵 Tỷ giá USD/VND:</span>
+                        <span id="display-usd" style="font-size: 1.3rem; font-weight: 700; color: #059669;">Đang tải...</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="color: var(--text-light); font-weight: 500;">⛽ Xăng RON95:</span>
+                        <span id="display-fuel" style="font-size: 1.3rem; font-weight: 700; color: #dc2626;">Đang tải...</span>
+                    </div>
+                </div>
             </div>
 
             <div class="card">
                 <h3>Chỉ Số Biến Động (Volatility)</h3>
                 <div class="price" id="volatility-status" style="color: var(--primary-coffee);">Đang tải...</div>
-                <div style="color: var(--text-light); margin-top: 5px;">Mức độ rủi ro dao động giá</div>
+                <div style="color: var(--text-light); margin-top: 5px;">Mức độ rủi ro dao động giá 7 ngày</div>
             </div>
         </section>
 
@@ -78,28 +96,20 @@
             <div
                 style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
                 <div>
-                    <h3 style="margin-bottom: 5px; color: var(--text-main); font-size: 1.2rem;">🎛️ Bộ Giả Lập Kịch Bản
-                        Thị trường</h3>
-                    <p style="color: var(--text-light); font-size: 0.95rem;">Tinh chỉnh biến số và khu vực để xem AI
-                        phản ứng thay đổi giá.</p>
+                    <h3 style="margin-bottom: 5px; color: var(--text-main); font-size: 1.2rem;">🎛️ Giả Lập Kịch Bản Thị Trường</h3>
+                    <p style="color: var(--text-light); font-size: 0.95rem;">Không cần nhập số liệu phức tạp. Hãy chọn kịch bản để xem AI phản ứng.</p>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button id="btn-reset" class="btn-reset">🔄 Đặt Lại</button>
-                    <button id="btn-simulate" class="btn-simulate">🚀 Chạy Mô Phỏng AI</button>
-                </div>
+                <button id="btn-simulate" class="btn-simulate">🚀 Chạy Kịch Bản Mới</button>
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 25px;">
-
-                <div class="control-group"
-                    style="background: #fff8e1; padding: 10px; border-radius: 8px; border: 1px solid #ffecb3;">
-                    <label
-                        style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
-                        <span style="color: #f57f17;">📍 Chọn Tỉnh / Thị trường</span>
+                
+                <div class="control-group" style="background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <label style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
+                        <span>📍 Chọn Khu Vực Bán</span>
                     </label>
-                    <select id="select-region"
-                        style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid var(--border-color); font-weight: 600; outline: none; cursor: pointer;">
-                        <option value="Đắk Lắk" selected>Đắk Lắk</option>
+                    <select id="select-region" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 600;">
+                        <option value="Đắk Lắk" selected>Đắk Lắk (Thị trường chuẩn)</option>
                         <option value="Lâm Đồng">Lâm Đồng</option>
                         <option value="Gia Lai">Gia Lai</option>
                         <option value="Đắk Nông">Đắk Nông</option>
@@ -108,9 +118,32 @@
                 </div>
 
                 <div class="control-group">
-                    <label
-                        style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
-                        <span>Giá cà phê chốt hôm qua</span>
+                    <label style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
+                        <span>Kịch bản Thời Tiết</span>
+                    </label>
+                    <select id="select-weather" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 500;">
+                        <option value="current" selected>Dùng thời tiết thực tế hôm nay</option>
+                        <option value="hot">🔥 Nắng nóng kéo dài / Khô hạn</option>
+                        <option value="rain">🌧️ Mưa bão / Lạnh giá</option>
+                        <option value="perfect">🌤️ Mưa thuận gió hòa (Thời tiết đẹp)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
+                        <span>Kịch bản Mùa vụ</span>
+                    </label>
+                    <select id="select-season" style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #cbd5e1; font-weight: 500;">
+                        <option value="current" selected>Dùng tháng thực tế hiện tại</option>
+                        <option value="harvest">Rộ vụ thu hoạch (T10 - T12) - Áp lực bán cao</option>
+                        <option value="dry">Giữa mùa khô (T1 - T4) - Nguồn cung cạn</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
+                        <span>Mốc giá nền hôm nay</span>
+>>>>>>> 4bfeb43 (feature: Button refesh + add usd_vn row data)
                         <span id="lag1-val" style="color: var(--primary-coffee);">105,200 đ/kg</span>
                     </label>
                     <input type="range" id="slider-lag1" min="50000" max="150000" step="500" value="105200"
@@ -118,42 +151,19 @@
                 </div>
 
                 <div class="control-group">
-                    <label
-                        style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
-                        <span>Giá Xăng RON95</span>
-                        <span id="fuel-val" style="color: var(--red-down);">23,500 đ/lít</span>
+                    <label style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
+                        <span>Giả lập Tỷ giá USD/VND</span>
+                        <span id="usd-val" style="color: #059669;">25,400 đ</span>
+                    </label>
+                    <input type="range" id="slider-usd" min="23000" max="27000" step="10" value="25400" style="width: 100%; cursor: pointer;">
+                </div>
+
+                <div class="control-group">
+                    <label style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
+                        <span>Giả lập Giá Xăng (Chi phí vận tải)</span>
+                        <span id="fuel-val" style="color: var(--red-down);">23,500 đ</span>
                     </label>
                     <input type="range" id="slider-fuel" min="15000" max="35000" step="100" value="23500"
-                        style="width: 100%; cursor: pointer;">
-                </div>
-
-                <div class="control-group">
-                    <label
-                        style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
-                        <span>Lượng mưa 30 ngày qua</span>
-                        <span id="rain-val" style="color: var(--blue-info);">120 mm</span>
-                    </label>
-                    <input type="range" id="slider-rain" min="0" max="800" step="10" value="120"
-                        style="width: 100%; cursor: pointer;">
-                </div>
-
-                <div class="control-group">
-                    <label
-                        style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
-                        <span>Nhiệt độ trung bình</span>
-                        <span id="temp-val" style="color: var(--orange-warn);">28 °C</span>
-                    </label>
-                    <input type="range" id="slider-temp" min="15" max="42" step="1" value="28"
-                        style="width: 100%; cursor: pointer;">
-                </div>
-
-                <div class="control-group">
-                    <label
-                        style="display: flex; justify-content: space-between; font-weight: 600; margin-bottom: 10px;">
-                        <span>Tháng trong năm</span>
-                        <span id="month-val" style="color: var(--green-up);">Tháng 6</span>
-                    </label>
-                    <input type="range" id="slider-month" min="1" max="12" step="1" value="6"
                         style="width: 100%; cursor: pointer;">
                 </div>
 
@@ -171,38 +181,16 @@
                 <h3 style="margin-bottom: 20px;">Trọng Số Tác Động Tới Mô Hình</h3>
 
                 <div class="factor">
-                    <div class="factor-header">
-                        <span>Lịch sử Giá & Quán tính thị trường (Lag_1)</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill bg-orange" style="width: 90%;"></div>
-                    </div>
+                    <div class="factor-header"><span>Tài chính & Quán tính giá (Lag_1, USD)</span></div>
+                    <div class="progress-bar"><div class="progress-fill bg-orange" style="width: 90%;"></div></div>
                 </div>
-
                 <div class="factor">
-                    <div class="factor-header">
-                        <span>Giá Xăng RON95 & Biến Động Logistics</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill bg-blue" style="width: 60%;"></div>
-                    </div>
+                    <div class="factor-header"><span>Chi phí Logistics (Xăng)</span></div>
+                    <div class="progress-bar"><div class="progress-fill bg-blue" style="width: 60%;"></div></div>
                 </div>
-
                 <div class="factor">
-                    <div class="factor-header">
-                        <span>Thời tiết & Khu vực địa lý</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill bg-green" style="width: 45%;"></div>
-                    </div>
-                </div>
-
-                <div style="margin-top: 35px; padding-top: 20px; border-top: 1px solid var(--border-color);">
-                    <h4 style="margin-bottom: 10px;">Ghi chú Thuật toán:</h4>
-                    <p style="font-size: 0.9rem; color: var(--text-light);">
-                        Hệ thống sử dụng Linear Regression Pipeline (Scikit-Learn). Dữ liệu được nội suy thông minh và
-                        loại bỏ nhiễu Target Leakage để đưa ra mức giá chân thực nhất.
-                    </p>
+                    <div class="factor-header"><span>Thời tiết & Vùng miền</span></div>
+                    <div class="progress-bar"><div class="progress-fill bg-green" style="width: 45%;"></div></div>
                 </div>
             </div>
         </section>
@@ -213,18 +201,22 @@
         style="background-color: white; padding: 30px 0; border-top: 1px solid var(--border-color); margin-top: 40px; text-align: center;">
         <div class="container">
             <p style="font-size: 0.85rem; color: var(--text-light); margin-bottom: 10px;">
-                * Tuyên bố miễn trừ trách nhiệm: AI sử dụng thuật toán Linear Regression dựa trên dữ liệu trễ và các yếu
-                tố vĩ mô. Kết quả chỉ mang tính tham khảo.
+
+                * Tuyên bố miễn trừ trách nhiệm: AI sử dụng thuật toán Linear Regression. Kết quả chỉ mang tính tham khảo.
             </p>
-            <p style="font-weight: 600; color: var(--primary-coffee);">&copy; 2026 CoffeeForecast. Based on Machine
-                Learning Pipeline.</p>
+            <p style="font-weight: 600; color: var(--primary-coffee);">&copy; 2026 CoffeeForecast. Based on Scikit-Learn.</p>
         </div>
     </footer>
 
     <script>
         let globalChartActual = [];
         let globalLabels = [];
-        let currentYear = 2026; // Biến lưu trữ năm hiện tại từ Backend
+        
+        // Biến lưu trữ thông số thực tế để làm mỏ neo cho bộ giả lập
+        let realCurrentYear = 2026;
+        let realTemp = 28.0;
+        let realRain = 10.0;
+        let realMonth = 6;
 
         // Các biến lưu giá trị gốc để Reset
         let origPrice, origFuel, origRain, origTemp, origMonth, origRegion;
@@ -267,16 +259,13 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: {
-                    title: { display: true, text: 'Lịch Sử Biến Động Giá & Dự Báo', font: { size: 16 } }
-                },
+                plugins: { title: { display: true, text: 'Lịch Sử Biến Động Giá & Dự Báo', font: { size: 16 } } },
                 scales: { y: { beginAtZero: false, title: { display: true, text: 'VNĐ / kg' } } }
             }
         });
 
         async function fetchRealDataFromBackend() {
             try {
-                // 1. Gọi API lấy dữ liệu thực tế
                 const response = await fetch('/api/current_data');
                 const data = await response.json();
 
@@ -286,29 +275,21 @@
                     return;
                 }
 
-                // 2. Gán dữ liệu thực tế vào UI
+                // Gán dữ liệu thực vào biến toàn cục
                 const currentPrice = data.current_price;
                 const fuelPrice = data.fuel_price;
-                const rainfall = data.rainfall;
-                const temp = data.temperature;
-                const month = data.month;
+                const usdRate = data.usd_vnd || 25400; // Phòng trường hợp thiếu api
+                
+                realRain = data.rainfall;
+                realTemp = data.temperature;
+                realMonth = data.month;
+                if(data.year) realCurrentYear = data.year;
 
-                if (data.year) currentYear = data.year;
-
-                // Lưu lại dữ liệu gốc để làm chức năng Reset
-                origPrice = currentPrice;
-                origFuel = fuelPrice;
-                origRain = rainfall;
-                origTemp = temp;
-                origMonth = month;
-                origRegion = document.getElementById('select-region').value;
-
-                // --- ĐỔ DỮ LIỆU BẢNG GIÁ THỊ TRƯỜNG ---
+                // --- BẢNG GIÁ THỊ TRƯỜNG ---
                 const prevPrice = data.chart_actual[data.chart_actual.length - 2] || currentPrice;
                 const change = currentPrice - prevPrice;
                 const changeStr = change > 0 ? `+${change.toLocaleString()}` : (change === 0 ? "0" : change.toLocaleString());
 
-                // Đổ dữ liệu 4 tỉnh
                 const regions = [
                     { name: "Đắk Lắk", offset: 0 },
                     { name: "Lâm Đồng", offset: -400 },
@@ -333,14 +314,17 @@
                     tbody.appendChild(tr);
                 });
 
-                // Cập nhật giá tổng trung bình
                 const finalAvgPrice = Math.round(totalAvgPrice / regions.length);
                 document.getElementById('board-avg-price').innerHTML = `${finalAvgPrice.toLocaleString()} <span class="mb-unit">đ/kg</span>`;
                 const badge = document.getElementById('board-avg-change');
                 badge.innerText = changeStr;
                 badge.className = "mb-badge " + (change > 0 ? "up" : (change < 0 ? "down" : "neutral"));
-                // ----------------------------------------------
 
+                // --- CẬP NHẬT THẺ VĨ MÔ MỚI ---
+                document.getElementById('display-usd').innerText = usdRate.toLocaleString() + ' đ';
+                document.getElementById('display-fuel').innerText = fuelPrice.toLocaleString() + ' đ';
+
+                // --- CẬP NHẬT GIAO DIỆN KHÁC ---
                 document.getElementById('ticker-today').innerText = currentPrice.toLocaleString() + ' VNĐ';
 
                 document.getElementById('slider-lag1').value = currentPrice;
@@ -349,32 +333,25 @@
                 document.getElementById('slider-fuel').value = fuelPrice;
                 document.getElementById('fuel-val').innerText = fuelPrice.toLocaleString() + ' đ/lít';
 
-                document.getElementById('slider-rain').value = rainfall;
-                document.getElementById('rain-val').innerText = rainfall.toFixed(1) + ' mm';
-
-                document.getElementById('slider-temp').value = temp;
-                document.getElementById('temp-val').innerText = temp.toFixed(1) + ' °C';
-
-                document.getElementById('slider-month').value = month;
-                document.getElementById('month-val').innerText = 'Tháng ' + month;
+                document.getElementById('slider-usd').value = usdRate;
+                document.getElementById('usd-val').innerText = usdRate.toLocaleString() + ' đ';
 
                 let vol = calculateVolatility(data.chart_actual);
                 document.getElementById('volatility-status').innerText = 'Dao động ~' + Math.round(vol).toLocaleString() + ' đ';
 
-                // Lưu dữ liệu biểu đồ toàn cục
                 globalChartActual = data.chart_actual;
                 globalLabels = data.chart_labels;
 
-                // 3. Tự động chạy mô phỏng lần đầu tiên với Tỉnh mặc định
+                // Tự động chạy mô phỏng AI lần đầu
                 let region = document.getElementById('select-region').value;
-                runAISimulation(currentPrice, fuelPrice, rainfall, temp, month, currentYear, region);
+                runAISimulation(currentPrice, fuelPrice, usdRate, realRain, realTemp, realMonth, realCurrentYear, region);
 
             } catch (error) {
-                console.error("Lỗi kết nối API Data:", error);
+                console.error("Lỗi API Data:", error);
             }
         }
 
-        async function runAISimulation(lagPrice, fuel, rain, temp, month, year, region) {
+        async function runAISimulation(lagPrice, fuel, usd, rain, temp, month, year, region) {
             const predictElem = document.getElementById('predicted-price');
             const diffElem = document.getElementById('price-diff');
             const recommendElem = document.getElementById('ai-recommendation');
@@ -385,6 +362,7 @@
             const payload = {
                 lag_1_price: lagPrice,
                 fuel_price: fuel,
+                usd_vnd: usd, // Gửi tỷ giá giả lập cho Backend
                 rainfall: rain,
                 temperature: temp,
                 month: month,
@@ -410,7 +388,6 @@
                 let lag1_price = aiResult.base_price;
                 let returnedRegion = aiResult.region;
 
-                // Cập nhật UI
                 predictElem.innerText = Math.round(predictedPrice).toLocaleString() + ' đ/kg';
                 predictElem.style.color = "#E53935";
                 document.getElementById('ticker-tomorrow').innerText = Math.round(predictedPrice).toLocaleString() + ' VNĐ';
@@ -430,59 +407,89 @@
                     recommendElem.style.color = "#D32F2F";
                 }
 
-                // Cập nhật biểu đồ chính xác cho Linear Regression 1 bước thời gian
-                let customLabels = [...globalLabels];
-                customLabels.push("Ngày mai (AI)");
-
+                // Cập nhật biểu đồ
+                let customLabels = [...globalLabels, "Ngày mai (AI)"];
                 let actualPlot = [...globalChartActual];
-
-                // Mảng dự báo: Điểm neo nối từ ngày cuối cùng của thực tế -> Ngày mai
                 let predictPlot = new Array(globalChartActual.length + 1).fill(null);
-                let lastActualIndex = globalChartActual.length - 1;
-
-                predictPlot[lastActualIndex] = lagPrice;
-                predictPlot[lastActualIndex + 1] = predictedPrice;
+                let lastIdx = globalChartActual.length - 1;
+                
+                predictPlot[lastIdx] = lagPrice;            
+                predictPlot[lastIdx + 1] = predictedPrice;  
 
                 coffeeChart.data.labels = customLabels;
                 coffeeChart.data.datasets[0].data = actualPlot;
                 coffeeChart.data.datasets[1].data = predictPlot;
                 coffeeChart.update();
 
-            } catch (e) {
-                console.error("Lỗi gọi Server:", e);
+            } catch(e) { 
+                console.error("Lỗi:", e);
                 predictElem.innerText = "Lỗi API!";
             }
         }
 
+        // --- SỰ KIỆN NÚT LÀM MỚI ---
+        document.getElementById('btn-refresh').addEventListener('click', async function() {
+            const icon = document.getElementById('refresh-icon');
+            icon.classList.add('spin'); // Thêm hiệu ứng xoay
+            
+            await fetchRealDataFromBackend(); // Load lại từ server
+            
+            // Đưa các dropdown giả lập về mặc định
+            document.getElementById('select-weather').value = 'current';
+            document.getElementById('select-season').value = 'current';
+            
+            setTimeout(() => icon.classList.remove('spin'), 500); // Dừng xoay
+        });
+
+        // Tải dữ liệu lần đầu
         document.addEventListener('DOMContentLoaded', fetchRealDataFromBackend);
 
-        const lag1Slider = document.getElementById('slider-lag1');
-        const fuelSlider = document.getElementById('slider-fuel');
-        const rainSlider = document.getElementById('slider-rain');
-        const tempSlider = document.getElementById('slider-temp');
-        const monthSlider = document.getElementById('slider-month');
-        const regionSelect = document.getElementById('select-region');
+        // Sự kiện hiển thị số trên slider
+        document.getElementById('slider-lag1').oninput = function() { document.getElementById('lag1-val').innerText = parseInt(this.value).toLocaleString() + ' đ/kg'; }
+        document.getElementById('slider-fuel').oninput = function() { document.getElementById('fuel-val').innerText = parseInt(this.value).toLocaleString() + ' đ/lít'; }
+        document.getElementById('slider-usd').oninput = function() { document.getElementById('usd-val').innerText = parseInt(this.value).toLocaleString() + ' đ'; }
 
-        lag1Slider.oninput = function () { document.getElementById('lag1-val').innerText = parseInt(this.value).toLocaleString() + ' đ/kg'; }
-        fuelSlider.oninput = function () { document.getElementById('fuel-val').innerText = parseInt(this.value).toLocaleString() + ' đ/lít'; }
-        rainSlider.oninput = function () { document.getElementById('rain-val').innerText = this.value + ' mm'; }
-        tempSlider.oninput = function () { document.getElementById('temp-val').innerText = this.value + ' °C'; }
-        monthSlider.oninput = function () { document.getElementById('month-val').innerText = 'Tháng ' + this.value; }
-
-        document.getElementById('btn-simulate').addEventListener('click', function () {
+        // --- SỰ KIỆN CHẠY KỊCH BẢN (NỘI SUY TỪ DROPDOWN) ---
+        document.getElementById('btn-simulate').addEventListener('click', function() {
             const btn = this;
             btn.innerText = "Đang tính toán...";
             btn.style.opacity = "0.7";
+            
+            // 1. Lấy biến từ Slider
+            let lag = parseInt(document.getElementById('slider-lag1').value);
+            let fuel = parseInt(document.getElementById('slider-fuel').value);
+            let usd = parseInt(document.getElementById('slider-usd').value);
+            let region = document.getElementById('select-region').value; 
+            
+            // 2. Nội suy kịch bản thời tiết ra số liệu cho Model
+            let weatherScenario = document.getElementById('select-weather').value;
+            let simTemp = realTemp;
+            let simRain = realRain;
+            
+            if (weatherScenario === 'hot') {
+                simTemp = 35.0; // Nóng
+                simRain = 0.0;  // Không mưa
+            } else if (weatherScenario === 'rain') {
+                simTemp = 22.0; // Lạnh
+                simRain = 250.0; // Mưa bão
+            } else if (weatherScenario === 'perfect') {
+                simTemp = 26.0; 
+                simRain = 40.0;
+            }
 
-            let lag = parseInt(lag1Slider.value);
-            let fuel = parseInt(fuelSlider.value);
-            let rain = parseInt(rainSlider.value);
-            let temp = parseInt(tempSlider.value);
-            let month = parseInt(monthSlider.value);
-            let region = regionSelect.value;
+            // 3. Nội suy kịch bản mùa vụ
+            let seasonScenario = document.getElementById('select-season').value;
+            let simMonth = realMonth;
 
-            runAISimulation(lag, fuel, rain, temp, month, currentYear, region).then(() => {
-                btn.innerText = "🚀 Chạy Mô Phỏng AI";
+            if (seasonScenario === 'harvest') {
+                simMonth = 11; // Tháng 11 (Vụ thu hoạch rộ)
+            } else if (seasonScenario === 'dry') {
+                simMonth = 3;  // Tháng 3 (Giữa mùa khô hạn)
+            }
+
+            // Gọi AI
+            runAISimulation(lag, fuel, usd, simRain, simTemp, simMonth, realCurrentYear, region).then(() => {
+                btn.innerText = "🚀 Chạy Kịch Bản Mới";
                 btn.style.opacity = "1";
             });
         });

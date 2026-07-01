@@ -29,7 +29,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-# 2. KHAI BÁO CLASS HUẤN LUYỆN
+# KHAI BÁO CLASS HUẤN LUYỆN
 class CoffeePricePredictorTrainer:
     def __init__(self, train_path: str, val_path: str, test_path: str, model_save_path: str = "linear_model.pkl"):
         self.train_path = train_path
@@ -39,17 +39,27 @@ class CoffeePricePredictorTrainer:
         
         # Cột mục tiêu
         self.target_col = "gia"
-        # Các cột không dùng để làm features (như ID, Date, hoặc các biến gây Data Leakage)
+        
+        # Các cột không dùng để làm features (Target Leakage hoặc không có ý nghĩa toán học)
         self.drop_cols = ["ngay", "gia_chenh_lech"]
         
         self.pipeline = None
 
     def load_data(self, filepath: str) -> pd.DataFrame:
-        """Đọc dữ liệu từ file CSV và xử lý lỗi nếu file không tồn tại."""
+        """Đọc dữ liệu từ file CSV, xử lý lỗi và loại bỏ dữ liệu rỗng (NaN)."""
         try:
             df = pd.read_csv(filepath)
-            logger.info(f"Đã tải thành công dữ liệu từ {filepath} với kích thước {df.shape}")
+            
+            initial_shape = df.shape[0]
+            df = df.dropna().reset_index(drop=True)
+            dropped_rows = initial_shape - df.shape[0]
+            
+            if dropped_rows > 0:
+                logger.warning(f"Đã tự động xóa {dropped_rows} dòng chứa giá trị rỗng (NaN) trong {filepath}.")
+                
+            logger.info(f"Đã tải dữ liệu từ {filepath} | Kích thước sẵn sàng train: {df.shape}")
             return df
+            
         except FileNotFoundError:
             logger.error(f"Không tìm thấy file: {filepath}")
             raise
@@ -58,7 +68,7 @@ class CoffeePricePredictorTrainer:
             raise
 
     def prepare_features_targets(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
-        """Tách features (X) và target (y)."""
+        """Tách features (X) và target (y). Mọi cột ngoài drop_cols đều tự động thành Feature."""
         X = df.drop(columns=[self.target_col] + self.drop_cols, errors="ignore")
         y = df[self.target_col]
         return X, y
@@ -66,7 +76,7 @@ class CoffeePricePredictorTrainer:
     def build_pipeline(self) -> Pipeline:
         """Xây dựng Scikit-Learn Pipeline gồm chuẩn hóa và mô hình."""
         pipeline = Pipeline([
-            ('scaler', StandardScaler()),       # Chuẩn hóa dữ liệu (Z-score)
+            ('scaler', StandardScaler()),       # Chuẩn hóa (Z-score) giúp mô hình ko bị thiên lệch bởi số lớn (như usd_vnd ~ 25000)
             ('regressor', LinearRegression())   # Mô hình Linear Regression
         ])
         return pipeline
@@ -98,7 +108,7 @@ class CoffeePricePredictorTrainer:
         X_test, y_test = self.prepare_features_targets(df_test)
 
         logger.info(f"Số lượng features đầu vào: {X_train.shape[1]}")
-        logger.info(f"Danh sách features (đã loại bỏ rò rỉ dữ liệu): {list(X_train.columns)}")
+        logger.info(f"Danh sách features: {list(X_train.columns)}")
 
         # 3. Xây dựng và huấn luyện Pipeline
         self.pipeline = self.build_pipeline()
@@ -119,8 +129,14 @@ class CoffeePricePredictorTrainer:
             columns=['Hệ số (Coefficient)'], 
             index=feature_names
         ).sort_values(by='Hệ số (Coefficient)', ascending=False)
-        logger.info("Top 5 đặc trưng ảnh hưởng tích cực nhất:\n%s", coefs.head(5).to_string())
-        logger.info("Top 5 đặc trưng ảnh hưởng tiêu cực nhất:\n%s", coefs.tail(5).to_string())
+        
+        logger.info("Top 5 đặc trưng ảnh hưởng tích cực (Làm tăng giá):\n%s", coefs.head(5).to_string())
+        logger.info("Top 5 đặc trưng ảnh hưởng tiêu cực (Làm giảm giá):\n%s", coefs.tail(5).to_string())
+        
+        # Kiểm tra nhanh trọng số của USD_VND nếu nó tồn tại
+        if 'usd_vnd' in coefs.index:
+            usd_weight = coefs.loc['usd_vnd', 'Hệ số (Coefficient)']
+            logger.info(f"👉 Trọng số của Tỷ giá USD/VND: {usd_weight:.2f}")
 
         # 6. Lưu trữ mô hình
         self.save_model()
@@ -128,7 +144,6 @@ class CoffeePricePredictorTrainer:
     def save_model(self):
         """Lưu model pipeline ra file."""
         if self.pipeline is not None:
-            # Tạo thư mục models/ nếu chưa tồn tại
             os.makedirs(os.path.dirname(self.model_save_path), exist_ok=True)
             joblib.dump(self.pipeline, self.model_save_path)
             logger.info(f"Đã lưu mô hình chuẩn hóa và dự đoán tại: {self.model_save_path}")
