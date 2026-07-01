@@ -1,8 +1,7 @@
-import numpy as np
-import pandas as pd
-import joblib
-import math
 import os
+import joblib
+import pandas as pd
+import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
@@ -10,29 +9,22 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder='../web', static_url_path='/')
 CORS(app)
 
-# --- LOAD 4 MÔ HÌNH LIGHTGBM VÀO DICTIONARY KHI KHỞI ĐỘNG ---
-MODELS = {}
-HORIZONS = [1, 3, 7, 30]
+MODEL_PATH = 'models/coffee_price_lr_model.pkl'
+try:
+    # Model này là một Pipeline: StandardScaler và LinearRegression
+    model_pipeline = joblib.load(MODEL_PATH)
+    print(f"✅ Đã load thành công mô hình: {MODEL_PATH}")
+except FileNotFoundError:
+    print(f"⚠️ Cảnh báo: Chưa tìm thấy {MODEL_PATH}. Vui lòng kiểm tra lại đường dẫn.")
+    model_pipeline = None
 
-for h in HORIZONS:
-    # 🔴 Đã sửa tên file cho khớp với file huấn luyện mới
-    model_path = f'models/lgbm_model_{h}d.pkl'
-    try:
-        MODELS[h] = joblib.load(model_path)
-        print(f"✅ Đã load mô hình LightGBM dự báo {h} ngày.")
-    except FileNotFoundError:
-        print(f"⚠️ Cảnh báo: Chưa tìm thấy {model_path}.")
-        MODELS[h] = None
-
-# 🔴 Đã loại bỏ Lag_2_Price và Lag_14_Price cho khớp với Training
 FEATURE_COLUMNS = [
-    'thang_sin', 'thang_cos', 'quy_sin', 'quy_cos',
-    'Lag_1_Price', 'Lag_7_Price', 'Lag_30_Price',
-    'MA_7_Price', 'MA_30_Price',
-    'Volatility_7D', 'Volatility_30D',
-    'Rainfall_30D_Sum',
-    'ron95_vung1', 'Fuel_Price_Change_7D',
-    'temperature_2m_mean'
+    'temperature_2m_mean', 'temperature_2m_min', 'temperature_2m_max',
+    'precipitation_sum', 'rain_sum', 'lat', 'lon', 'ron95_vung1',
+    'is_update_day', 'thang', 'nam', 'thi_truong_Gia Lai',
+    'thi_truong_Kon Tum', 'thi_truong_Lâm Đồng', 'thi_truong_Đắk Lắk',
+    'thi_truong_Đắk Nông', 'lag_1', 'lag_2', 'rolling_mean_3',
+    'min_7d', 'max_7d'
 ]
 
 @app.route('/')
@@ -42,84 +34,103 @@ def index():
 # Endpoint dự báo mô phỏng
 @app.route('/api/predict_simulation', methods=['POST'])
 def predict_simulation():
+    if model_pipeline is None:
+        return jsonify({"error": "Mô hình chưa sẵn sàng"}), 500
+
     data = request.json
-    horizon = int(data.get('horizon', 1))
-
-    if horizon not in MODELS or MODELS[horizon] is None:
-        return jsonify({"error": f"Mô hình {horizon} ngày chưa sẵn sàng"}), 500
-
     try:
+        # Lấy các tham số chính từ giao diện người dùng
         lag_1 = float(data.get('lag_1_price', 105200))
         fuel  = float(data.get('fuel_price', 23500))
-        rain  = float(data.get('rainfall', 120))
+        rain  = float(data.get('rainfall', 10))
         temp  = float(data.get('temperature', 28))
         month = int(data.get('month', 6))
+        year  = int(data.get('year', 2025))
+        
+        # Xử lý chọn tỉnh/thị trường (Mặc định là Đắk Lắk)
+        region = data.get('region', 'Đắk Lắk')
+        thi_truong = {
+            'Gia Lai': 0, 'Kon Tum': 0, 'Lâm Đồng': 0, 'Đắk Lắk': 0, 'Đắk Nông': 0
+        }
+        if region in thi_truong:
+            thi_truong[region] = 1
+        else:
+            thi_truong['Đắk Lắk'] = 1 # Fallback an toàn
 
-        thang_sin = math.sin(2 * math.pi * month / 12)
-        thang_cos = math.cos(2 * math.pi * month / 12)
-        quarter = (month - 1) // 3 + 1
-        quy_sin = math.sin(2 * math.pi * quarter / 4)
-        quy_cos = math.cos(2 * math.pi * quarter / 4)
-
-        # 🔴 Tạo input_dict phải y hệt số lượng và thứ tự cột lúc Train
+        # 3. TẠO INPUT DICT (Gồm tham số chính + nội suy tham số phụ)
         input_dict = {
-            'thang_sin': thang_sin, 'thang_cos': thang_cos,
-            'quy_sin': quy_sin, 'quy_cos': quy_cos,
-            'Lag_1_Price': lag_1, 
-            'Lag_7_Price': lag_1 - 1500,  # Giả định giá trị lag tạm thời nếu ko có real data
-            'Lag_30_Price': lag_1 - 4000,
-            'MA_7_Price': lag_1 - 800, 
-            'MA_30_Price': lag_1 - 2000,
-            'Volatility_7D': 1200.0, 
-            'Volatility_30D': 1800.0,
-            'Rainfall_30D_Sum': rain,
+            'temperature_2m_mean': temp,
+            'temperature_2m_min': temp - 3.5, # Giả định nhiệt độ min thấp hơn trung bình 3.5 độ
+            'temperature_2m_max': temp + 4.0, # Giả định nhiệt độ max cao hơn trung bình 4 độ
+            'precipitation_sum': rain,
+            'rain_sum': rain,
+            'lat': 12.66, # Tọa độ xấp xỉ của Tây Nguyên
+            'lon': 108.03,
             'ron95_vung1': fuel,
-            'Fuel_Price_Change_7D': 0.02,
-            'temperature_2m_mean': temp
+            'is_update_day': 1, # Thường dự đoán cho ngày có cập nhật giá
+            'thang': month,
+            'nam': year,
+            'thi_truong_Gia Lai': thi_truong['Gia Lai'],
+            'thi_truong_Kon Tum': thi_truong['Kon Tum'],
+            'thi_truong_Lâm Đồng': thi_truong['Lâm Đồng'],
+            'thi_truong_Đắk Lắk': thi_truong['Đắk Lắk'],
+            'thi_truong_Đắk Nông': thi_truong['Đắk Nông'],
+            
+            # Khối dữ liệu chuỗi thời gian (Nội suy dựa trên lag_1)
+            'lag_1': lag_1,
+            'lag_2': lag_1 - 300,            # Giả định giá hôm kia thấp hơn hôm qua một chút
+            'rolling_mean_3': lag_1 - 100,   # Trung bình 3 ngày sát với giá lag_1
+            'min_7d': lag_1 - 1500,          # Đáy 7 ngày
+            'max_7d': lag_1 + 500            # Đỉnh 7 ngày
         }
 
-        # Lưu ý: LightGBM yêu cầu dataframe có cột giống hệt lúc fit
+        # Chuyển đổi thành DataFrame với đúng thứ tự cột
         df_input = pd.DataFrame([input_dict], columns=FEATURE_COLUMNS)
         
-        selected_model = MODELS[horizon]
-        predicted_diff = selected_model.predict(df_input)[0]
-        final_price = lag_1 + predicted_diff
+        # Dự đoán: Khác với LightGBM (dự đoán diff), Linear Regression của chúng ta dự đoán thẳng GIÁ TRỊ THỰC
+        predicted_price = model_pipeline.predict(df_input)[0]
+        predicted_diff = predicted_price - lag_1
 
         return jsonify({
             "status": "success", 
-            "horizon": horizon,
             "base_price": lag_1, 
-            "predicted_price": final_price, 
-            "diff": predicted_diff
+            "predicted_price": round(predicted_price, 2), 
+            "diff": round(predicted_diff, 2),
+            "region": region
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# Endpoint current_data giữ nguyên như của bạn...
+
 @app.route('/api/current_data', methods=['GET'])
 def current_data():
     try:
+        # Load file test mới nhất để hiển thị biểu đồ
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        csv_path = os.path.join(BASE_DIR, '..', 'data', '3_processed', 'processed_dak_lak_test.csv')
+        csv_path = os.path.join(BASE_DIR, '..', 'data', 'coffee_price_test_features.csv')
         df = pd.read_csv(csv_path)
 
-        recent_df = df.tail(7)
+        # Lọc lấy riêng dữ liệu của 1 tỉnh (ví dụ Đắk Lắk) để vẽ biểu đồ không bị nhiễu do trùng ngày
+        df_daklak = df[df['thi_truong_Đắk Lắk'] == 1]
+        
+        recent_df = df_daklak.tail(7)
         latest_day = recent_df.iloc[-1]
-        month = pd.to_datetime(latest_day['ngay']).month
 
         return jsonify({
             "status": "success",
             "current_price": float(latest_day['gia']),
             "fuel_price": float(latest_day['ron95_vung1']),
-            "rainfall": float(latest_day['Rainfall_30D_Sum']),
+            "rainfall": float(latest_day['precipitation_sum']),
             "temperature": float(latest_day['temperature_2m_mean']),
-            "month": int(month),
-            "chart_labels": recent_df['ngay'].astype(str).tolist(),
+            "month": int(latest_day['thang']),
+            "year": int(latest_day['nam']),
+            "chart_labels": recent_df['ngay'].astype(str).tolist() if 'ngay' in recent_df else [],
             "chart_actual": recent_df['gia'].tolist()
         })
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=7860, debug=False)
