@@ -39,6 +39,7 @@ FEATURE_COLUMNS = [
 def index():
     return app.send_static_file('index.html')
 
+# Endpoint dự báo mô phỏng
 @app.route('/api/predict_simulation', methods=['POST'])
 def predict_simulation():
     data = request.json
