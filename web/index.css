@@ -54,3 +54,74 @@ header { background-color: var(--card-bg); border-bottom: 1px solid var(--border
 .bg-orange { background-color: var(--orange-warn); }
 .bg-blue { background-color: var(--blue-info); }
 .bg-green { background-color: var(--green-up); }
+
+/* CSS CHO BẢNG GIÁ THỊ TRƯỜNG */
+.market-board {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    margin-bottom: 24px;
+    border: 1px solid #e5e7eb;
+}
+.mb-header .lbl-avg {
+    font-size: 0.95rem;
+    color: #5f6368;
+    margin-bottom: 4px;
+    display: block;
+}
+.mb-price-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.mb-price {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #202124;
+}
+.mb-unit {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #5f6368;
+}
+.mb-badge {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: #fff;
+}
+.mb-badge.up { background-color: #2ecca6; } /* Màu xanh lá */
+.mb-badge.down { background-color: #ef4444; } /* Màu đỏ */
+.mb-badge.neutral { background-color: #9ca3af; }
+
+.mb-table-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #202124;
+    margin-bottom: 16px;
+    padding-top: 24px;
+    border-top: 1px solid #f1f3f4;
+}
+.mb-table { width: 100%; border-collapse: collapse; }
+.mb-table th {
+    text-align: left;
+    padding: 12px 8px;
+    color: #5f6368;
+    font-weight: 400;
+    font-size: 0.95rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+.mb-table td {
+    padding: 16px 8px;
+    color: #202124;
+    font-size: 1.05rem;
+    border-bottom: 1px solid #f1f3f4;
+}
+.mb-table tr:last-child td { border-bottom: none; }
+.text-right { text-align: right !important; }
+.font-bold { font-weight: 700; }
+.text-up { color: #059669; font-weight: 500;}
+.text-down { color: #dc2626; font-weight: 500;}

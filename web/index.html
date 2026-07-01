@@ -28,13 +28,31 @@
         
         <h1 class="dashboard-title">Dự Báo Giá Cà Phê AI (Mô hình Linear Regression)</h1>
 
-        <section class="cards-grid">
-            <div class="card">
-                <h3>Giá Hiện Tại (Hôm Nay)</h3>
-                <div class="price" id="current-price">Đang tải...</div>
-                <div style="color: var(--text-light); margin-top: 5px;">📍 Khu vực: <span id="display-region-current" style="font-weight: 600;">Đắk Lắk</span></div>
+        <section class="market-board">
+            <div class="mb-header">
+                <span class="lbl-avg">Trung bình</span>
+                <div class="mb-price-wrapper">
+                    <div class="mb-price" id="board-avg-price">-- <span class="mb-unit">đ/kg</span></div>
+                    <div class="mb-badge" id="board-avg-change">--</div>
+                </div>
             </div>
-            
+
+            <h3 class="mb-table-title">Giá cà phê trong nước</h3>
+            <table class="mb-table">
+                <thead>
+                    <tr>
+                        <th>Thị trường</th>
+                        <th class="text-right">Trung bình</th>
+                        <th class="text-right">Thay đổi</th>
+                    </tr>
+                </thead>
+                <tbody id="board-table-body">
+                    <tr><td colspan="3">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="cards-grid" style="grid-template-columns: 1fr 1fr;">
             <div class="card">
                 <h3 id="prediction-title">Dự Báo Của AI (Ngày Mai)</h3>
                 <div class="price" id="predicted-price" style="color: var(--red-down);">Đang tải...</div>
@@ -231,7 +249,7 @@
 
                 if (data.error) {
                     console.error("Lỗi từ backend:", data.error);
-                    document.getElementById('current-price').innerText = "Lỗi tải dữ liệu";
+                    document.getElementById('board-avg-price').innerHTML = "Lỗi kết nối";
                     return;
                 }
 
@@ -242,10 +260,46 @@
                 const temp = data.temperature;
                 const month = data.month;
                 
-                // Cập nhật year nếu backend trả về
                 if(data.year) currentYear = data.year;
 
-                document.getElementById('current-price').innerText = currentPrice.toLocaleString() + ' đ/kg';
+                // --- ĐỔ DỮ LIỆU BẢNG GIÁ THỊ TRƯỜNG ---
+                const prevPrice = data.chart_actual[data.chart_actual.length - 2] || currentPrice;
+                const change = currentPrice - prevPrice;
+                const changeStr = change > 0 ? `+${change.toLocaleString()}` : (change === 0 ? "0" : change.toLocaleString());
+
+                // Đổ dữ liệu 4 tỉnh
+                const regions = [
+                    { name: "Đắk Lắk", offset: 0 },
+                    { name: "Lâm Đồng", offset: -400 },
+                    { name: "Gia Lai", offset: 0 },
+                    { name: "Đắk Nông", offset: 100 }
+                ];
+
+                const tbody = document.getElementById('board-table-body');
+                tbody.innerHTML = ""; 
+                const textChangeClass = change > 0 ? "text-up" : (change < 0 ? "text-down" : "");
+                let totalAvgPrice = 0;
+
+                regions.forEach(r => {
+                    const rPrice = currentPrice + r.offset;
+                    totalAvgPrice += rPrice;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${r.name}</td>
+                        <td class="text-right font-bold">${rPrice.toLocaleString()}</td>
+                        <td class="text-right ${textChangeClass}">${changeStr}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                // Cập nhật giá tổng trung bình
+                const finalAvgPrice = Math.round(totalAvgPrice / regions.length);
+                document.getElementById('board-avg-price').innerHTML = `${finalAvgPrice.toLocaleString()} <span class="mb-unit">đ/kg</span>`;
+                const badge = document.getElementById('board-avg-change');
+                badge.innerText = changeStr;
+                badge.className = "mb-badge " + (change > 0 ? "up" : (change < 0 ? "down" : "neutral"));
+                // ----------------------------------------------
+
                 document.getElementById('ticker-today').innerText = currentPrice.toLocaleString() + ' VNĐ';
 
                 document.getElementById('slider-lag1').value = currentPrice;
@@ -316,7 +370,6 @@
                 let returnedRegion = aiResult.region;
 
                 // Cập nhật UI
-                document.getElementById('display-region-current').innerText = returnedRegion;
                 predictElem.innerText = Math.round(predictedPrice).toLocaleString() + ' đ/kg';
                 predictElem.style.color = "#E53935"; 
                 document.getElementById('ticker-tomorrow').innerText = Math.round(predictedPrice).toLocaleString() + ' VNĐ';
@@ -324,13 +377,13 @@
                 const diff = predictedPrice - lag1_price;
                 if(diff > 0) {
                     diffElem.innerHTML = `<span style="color: #388E3C; font-weight: bold;">▲ Tăng ${Math.round(Math.abs(diff)).toLocaleString()} đ/kg (Ngày mai)</span>`;
-                    recommendElem.innerText = "AI Đề xuất: GIỮ HÀNG (Kịch bản giá lên)";
+                    recommendElem.innerText = `AI Đề xuất (${returnedRegion}): GIỮ HÀNG (Giá lên)`;
                     recommendElem.className = "forecast-tag tag-buy";
                     recommendElem.style.backgroundColor = "#E8F5E9";
                     recommendElem.style.color = "#388E3C";
                 } else {
                     diffElem.innerHTML = `<span style="color: #D32F2F; font-weight: bold;">▼ Giảm ${Math.round(Math.abs(diff)).toLocaleString()} đ/kg (Ngày mai)</span>`;
-                    recommendElem.innerText = "AI Đề xuất: CÂN NHẮC XẢ HÀNG";
+                    recommendElem.innerText = `AI Đề xuất (${returnedRegion}): XẢ HÀNG (Giá xuống)`;
                     recommendElem.className = "forecast-tag";
                     recommendElem.style.backgroundColor = "#FFEBEE";
                     recommendElem.style.color = "#D32F2F";
@@ -338,7 +391,7 @@
 
                 // Cập nhật biểu đồ chính xác cho Linear Regression 1 bước thời gian
                 let customLabels = [...globalLabels];
-                customLabels.push("Ngày mai (AI)"); // Chỉ 1 nhãn tương lai
+                customLabels.push("Ngày mai (AI)"); 
 
                 let actualPlot = [...globalChartActual];
                 
@@ -346,8 +399,8 @@
                 let predictPlot = new Array(globalChartActual.length + 1).fill(null);
                 let lastActualIndex = globalChartActual.length - 1;
                 
-                predictPlot[lastActualIndex] = lagPrice;            // Điểm nối
-                predictPlot[lastActualIndex + 1] = predictedPrice;  // Điểm mũi tên ngày mai
+                predictPlot[lastActualIndex] = lagPrice;            
+                predictPlot[lastActualIndex + 1] = predictedPrice;  
 
                 coffeeChart.data.labels = customLabels;
                 coffeeChart.data.datasets[0].data = actualPlot;
