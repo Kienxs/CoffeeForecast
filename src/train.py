@@ -1,158 +1,164 @@
-import sys
 import os
-import numpy as np
-import pandas as pd
+import sys
+import logging
+import argparse
 import joblib
-import lightgbm as lgb
-import warnings
+import pandas as pd
+import numpy as np
+from typing import Tuple, List
 
-from sklearn.model_selection import TimeSeriesSplit, RandomizedSearchCV
+from sklearn.linear_model import LinearRegression
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from statsmodels.stats.stattools import durbin_watson
 
-# Tắt cảnh báo để log gọn gàng hơn
-warnings.filterwarnings('ignore')
+# 1. CẤU HÌNH LOGGING 
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+if sys.stderr.encoding != 'utf-8':
+    sys.stderr.reconfigure(encoding='utf-8')
 
-# ── CẤU HÌNH ────────────────────────────────────────────────────────────────
-TRAIN_FILE = 'data/3_processed/processed_dak_lak_train.csv'
-VAL_FILE   = 'data/3_processed/processed_dak_lak_val.csv'
-TEST_FILE  = 'data/3_processed/processed_dak_lak_test.csv'
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout),
+        logging.FileHandler("training.log", encoding="utf-8")
+    ]
+)
+logger = logging.getLogger(__name__)
 
-HORIZONS = [1, 3, 7, 30]
 
-# Đã loại bỏ các Lag gần nhau để giảm nhiễu, LightGBM sẽ tự chọn lọc đặc trưng
-CANDIDATE_FEATURES = [
-    'thang_sin', 'thang_cos', 'quy_sin', 'quy_cos',
-    'Lag_1_Price', 'Lag_7_Price', 'Lag_30_Price',
-    'MA_7_Price', 'MA_30_Price',
-    'Volatility_7D', 'Volatility_30D',
-    'Rainfall_30D_Sum',
-    'ron95_vung1', 'Fuel_Price_Change_7D',
-    'temperature_2m_mean',
-]
+# 2. KHAI BÁO CLASS HUẤN LUYỆN
+class CoffeePricePredictorTrainer:
+    def __init__(self, train_path: str, val_path: str, test_path: str, model_save_path: str = "linear_model.pkl"):
+        self.train_path = train_path
+        self.val_path = val_path
+        self.test_path = test_path
+        self.model_save_path = model_save_path
+        
+        # Cột mục tiêu
+        self.target_col = "gia"
+        # Các cột không dùng để làm features (như ID, Date, hoặc các biến gây Data Leakage)
+        self.drop_cols = ["ngay", "gia_chenh_lech"]
+        
+        self.pipeline = None
 
-BASE_PRICE_COL = 'Lag_1_Price'
-REAL_PRICE_COL = 'gia'
+    def load_data(self, filepath: str) -> pd.DataFrame:
+        """Đọc dữ liệu từ file CSV và xử lý lỗi nếu file không tồn tại."""
+        try:
+            df = pd.read_csv(filepath)
+            logger.info(f"Đã tải thành công dữ liệu từ {filepath} với kích thước {df.shape}")
+            return df
+        except FileNotFoundError:
+            logger.error(f"Không tìm thấy file: {filepath}")
+            raise
+        except Exception as e:
+            logger.error(f"Lỗi khi tải file {filepath}: {e}")
+            raise
 
-def compute_metrics(y_true_abs: np.ndarray, y_pred_abs: np.ndarray, y_prev_abs: np.ndarray) -> dict:
-    mae  = mean_absolute_error(y_true_abs, y_pred_abs)
-    rmse = np.sqrt(mean_squared_error(y_true_abs, y_pred_abs))
-    r2   = r2_score(y_true_abs, y_pred_abs)
+    def prepare_features_targets(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.Series]:
+        """Tách features (X) và target (y)."""
+        X = df.drop(columns=[self.target_col] + self.drop_cols, errors="ignore")
+        y = df[self.target_col]
+        return X, y
+
+    def build_pipeline(self) -> Pipeline:
+        """Xây dựng Scikit-Learn Pipeline gồm chuẩn hóa và mô hình."""
+        pipeline = Pipeline([
+            ('scaler', StandardScaler()),       # Chuẩn hóa dữ liệu (Z-score)
+            ('regressor', LinearRegression())   # Mô hình Linear Regression
+        ])
+        return pipeline
+
+    def evaluate_model(self, model: Pipeline, X: pd.DataFrame, y: pd.Series, dataset_name: str):
+        """Đánh giá và in log các metrics."""
+        predictions = model.predict(X)
+        mae = mean_absolute_error(y, predictions)
+        rmse = np.sqrt(mean_squared_error(y, predictions))
+        r2 = r2_score(y, predictions)
+
+        logger.info(f"--- ĐÁNH GIÁ TRÊN TẬP {dataset_name.upper()} ---")
+        logger.info(f"MAE  : {mae:.2f}")
+        logger.info(f"RMSE : {rmse:.2f}")
+        logger.info(f"R2   : {r2:.4f}\n")
+
+    def train_and_evaluate(self):
+        """Luồng thực thi chính (Pipeline Execution)."""
+        logger.info("Bắt đầu quy trình huấn luyện mô hình...")
+
+        # 1. Đọc dữ liệu
+        df_train = self.load_data(self.train_path)
+        df_val = self.load_data(self.val_path)
+        df_test = self.load_data(self.test_path)
+
+        # 2. Tiền xử lý
+        X_train, y_train = self.prepare_features_targets(df_train)
+        X_val, y_val = self.prepare_features_targets(df_val)
+        X_test, y_test = self.prepare_features_targets(df_test)
+
+        logger.info(f"Số lượng features đầu vào: {X_train.shape[1]}")
+        logger.info(f"Danh sách features (đã loại bỏ rò rỉ dữ liệu): {list(X_train.columns)}")
+
+        # 3. Xây dựng và huấn luyện Pipeline
+        self.pipeline = self.build_pipeline()
+        logger.info("Đang huấn luyện Linear Regression pipeline...")
+        self.pipeline.fit(X_train, y_train)
+        logger.info("Huấn luyện hoàn tất!")
+
+        # 4. Đánh giá mô hình
+        self.evaluate_model(self.pipeline, X_train, y_train, "Train")
+        self.evaluate_model(self.pipeline, X_val, y_val, "Validation")
+        self.evaluate_model(self.pipeline, X_test, y_test, "Test")
+
+        # 5. Phân tích trọng số (Hiểu mô hình)
+        model = self.pipeline.named_steps['regressor']
+        feature_names = X_train.columns
+        coefs = pd.DataFrame(
+            model.coef_, 
+            columns=['Hệ số (Coefficient)'], 
+            index=feature_names
+        ).sort_values(by='Hệ số (Coefficient)', ascending=False)
+        logger.info("Top 5 đặc trưng ảnh hưởng tích cực nhất:\n%s", coefs.head(5).to_string())
+        logger.info("Top 5 đặc trưng ảnh hưởng tiêu cực nhất:\n%s", coefs.tail(5).to_string())
+
+        # 6. Lưu trữ mô hình
+        self.save_model()
+
+    def save_model(self):
+        """Lưu model pipeline ra file."""
+        if self.pipeline is not None:
+            # Tạo thư mục models/ nếu chưa tồn tại
+            os.makedirs(os.path.dirname(self.model_save_path), exist_ok=True)
+            joblib.dump(self.pipeline, self.model_save_path)
+            logger.info(f"Đã lưu mô hình chuẩn hóa và dự đoán tại: {self.model_save_path}")
+        else:
+            logger.error("Không có mô hình để lưu. Huấn luyện bị lỗi.")
+
+
+# 3. HÀM MAIN VÀ CLI ARGS
+def main():
+    parser = argparse.ArgumentParser(description="Script huấn luyện Linear Regression dự đoán giá cà phê")
     
-    diff_true = y_true_abs - y_prev_abs
-    diff_pred = y_pred_abs - y_prev_abs
-    da = np.mean(np.sign(diff_true) == np.sign(diff_pred)) * 100 if len(diff_true) > 0 else 0.0
+    parser.add_argument("--train", type=str, default="data/coffee_price_train_features.csv", help="Đường dẫn file train")
+    parser.add_argument("--val", type=str, default="data/coffee_price_val_features.csv", help="Đường dẫn file validation")
+    parser.add_argument("--test", type=str, default="data/coffee_price_test_features.csv", help="Đường dẫn file test")
 
-    residuals = y_true_abs - y_pred_abs
-    dw = durbin_watson(residuals)
+    parser.add_argument("--model-out", type=str, default="models/coffee_price_lr_model.pkl", help="Tên file model output (.pkl)")
+    
+    args = parser.parse_args()
 
-    return dict(mae=mae, rmse=rmse, r2=r2, da=da, dw=dw)
-
-def optimize_and_train_model(X_train, y_train):
-    """
-    Sử dụng TimeSeriesSplit để dò tìm tham số tối ưu mà không bị rò rỉ dữ liệu tương lai.
-    """
-    lgb_model = lgb.LGBMRegressor(random_state=42, n_jobs=-1, verbose=-1)
-    
-    # Không gian siêu tham số để dò tìm (Tùy chỉnh theo tài nguyên máy)
-    param_dist = {
-        'n_estimators': [50, 100, 200],
-        'learning_rate': [0.01, 0.05, 0.1],
-        'max_depth': [3, 5, 7],
-        'num_leaves': [15, 31, 63],
-        'subsample': [0.7, 0.8, 0.9],
-        'colsample_bytree': [0.7, 0.8, 0.9]
-    }
-    
-    # Validation trượt theo thời gian (3 folds)
-    tscv = TimeSeriesSplit(n_splits=3)
-    
-    random_search = RandomizedSearchCV(
-        estimator=lgb_model,
-        param_distributions=param_dist,
-        n_iter=15,          # Thử 15 tổ hợp ngẫu nhiên
-        cv=tscv,            # Chỉ dùng Validation quá khứ -> tương lai
-        scoring='neg_mean_absolute_error',
-        random_state=42,
-        n_jobs=-1
+    trainer = CoffeePricePredictorTrainer(
+        train_path=args.train,
+        val_path=args.val,
+        test_path=args.test,
+        model_save_path=args.model_out
     )
     
-    random_search.fit(X_train, y_train)
-    return random_search.best_estimator_, random_search.best_params_
-
-def main():
-    print("⏳ Đang nạp dữ liệu và huấn luyện mô hình đa khung thời gian với LightGBM...")
     try:
-        df_train = pd.read_csv(TRAIN_FILE, parse_dates=['ngay'], index_col='ngay')
-        df_val   = pd.read_csv(VAL_FILE,   parse_dates=['ngay'], index_col='ngay')
-        df_test  = pd.read_csv(TEST_FILE,  parse_dates=['ngay'], index_col='ngay')
-    except FileNotFoundError as e:
-        print(f"❌ Không tìm thấy file: {e}")
-        sys.exit(1)
-
-    # Gộp Train và Val để model học. Validation sẽ được thực hiện nội bộ qua TimeSeriesSplit
-    df_trainval = pd.concat([df_train, df_val]).sort_index()
-    actual_features = [c for c in CANDIDATE_FEATURES if c in df_trainval.columns]
-    
-    os.makedirs('models', exist_ok=True)
-    results_summary = []
-
-    # ── VÒNG LẶP HUẤN LUYỆN 1D, 3D, 7D, 30D ──
-    for h in HORIZONS:
-        print(f"\n⚙️ Đang xử lý mô hình dự báo: {h} Ngày...")
-        target_col = f'Target_{h}D'
-        
-        # 1. Tạo Target động (Chỉ dùng cho Training/Evaluation)
-        df_trainval_h = df_trainval.copy()
-        df_test_h = df_test.copy()
-        
-        df_trainval_h[target_col] = df_trainval_h[REAL_PRICE_COL].shift(-(h-1)) - df_trainval_h[BASE_PRICE_COL]
-        df_test_h[target_col] = df_test_h[REAL_PRICE_COL].shift(-(h-1)) - df_test_h[BASE_PRICE_COL]
-        
-        # 2. Xóa NaN an toàn (Không ảnh hưởng đến tập dữ liệu gốc nếu dùng cho Inference sau này)
-        valid_train = df_trainval_h.dropna(subset=actual_features + [target_col])
-        valid_test  = df_test_h.dropna(subset=actual_features + [target_col])
-        
-        X_train = valid_train[actual_features].values
-        y_train = valid_train[target_col].values
-        
-        X_test = valid_test[actual_features].values
-        
-        # Lấy giá trị cơ sở để phục hồi giá trị thực tế
-        y_test_diff = valid_test[target_col].values 
-        y_test_prev_abs = valid_test[BASE_PRICE_COL].values
-        y_test_true_abs = y_test_diff + y_test_prev_abs
-        
-        # 3. Huấn luyện Model với TimeSeries C.V
-        print("   🔍 Đang tìm kiếm siêu tham số tối ưu...")
-        best_model, best_params = optimize_and_train_model(X_train, y_train)
-        print(f"   ✨ Tham số tốt nhất: {best_params}")
-        
-        # 4. Lưu Model ra file
-        model_path = f'models/lgbm_model_{h}d.pkl'
-        joblib.dump(best_model, model_path)
-        print(f"   ✅ Đã lưu {model_path} (Train size: {len(X_train)})")
-        
-        # 5. Đánh giá trên tập Test
-        pred_diff = best_model.predict(X_test)
-        pred_abs = y_test_prev_abs + pred_diff
-        
-        metrics = compute_metrics(y_test_true_abs, pred_abs, y_test_prev_abs)
-        naive_metrics = compute_metrics(y_test_true_abs, y_test_prev_abs, y_test_prev_abs) 
-        
-        results_summary.append({
-            'Horizon': f'{h} Ngày',
-            'Model MAE': f"{metrics['mae']:,.0f}",
-            'Naive MAE': f"{naive_metrics['mae']:,.0f}",
-            'Model DA (%)': f"{metrics['da']:.2f}",
-            'Naive DA (%)': f"{naive_metrics['da']:.2f}"
-        })
-
-    # In kết quả tổng quan
-    print("\n📊 BẢNG TỔNG HỢP KẾT QUẢ ĐÁNH GIÁ (TEST SET):")
-    df_results = pd.DataFrame(results_summary).set_index('Horizon')
-    print(df_results.to_string())
-    print("\n🎉 HOÀN TẤT! Mô hình LightGBM đã sẵn sàng cho Production.")
+        trainer.train_and_evaluate()
+    except Exception as e:
+        logger.critical(f"Chương trình bị ngắt do lỗi nghiêm trọng: {e}")
 
 if __name__ == "__main__":
     main()
